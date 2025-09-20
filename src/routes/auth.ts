@@ -1,9 +1,11 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import db from '../config/database';
+import { UserDao } from '../dataaccess';
+import { databaseConnection } from '../datasource';
 import { UserStatus, Permission, authenticate } from '../middleware/auth-sql';
 import { config } from '../config/config';
+import { CreateUserData } from '../entities';
 
 // Request body interfaces
 interface LoginBody {
@@ -22,50 +24,26 @@ interface PasswordResetBody {
 }
 
 export async function authRoutes(fastify: FastifyInstance) {
+  // Initialize UserDao
+  const userDao = new UserDao(databaseConnection);
+
   // Login endpoint
   fastify.post<{ Body: LoginBody }>('/login', async (request, reply) => {
     try {
-      console.log('here')
-
       const { email, password } = request.body;
       if (!email || !password) {
         return reply.code(400).send({ error: 'Email and password are required' });
       }
 
-      // Get user with password hash and role information
-      const userQuery = `
-        SELECT 
-          u.id,
-          u.email,
-          u.password as password_hash,
-          u."phoneNumber",
-          u.status,
-          u."twoFactorEnabled",
-          u."lastLogin",
-          u."createdAt",
-          u."updatedAt",
-          r.id as role_id,
-          r.name as role_name,
-          r.description as role_description,
-          array_agg(p.name) as permissions
-        FROM users u
-        LEFT JOIN roles r ON u."roleId" = r.id
-        LEFT JOIN role_permissions rp ON r.id = rp.role_id
-        LEFT JOIN permissions p ON rp.permission_id = p.id
-        WHERE u.email = $1
-        GROUP BY u.id, r.id, r.name, r.description
-      `;
+      // Get user with role and permissions using UserDao
+      const user = await userDao.getUserByEmail(email);
 
-      const result = await db.query(userQuery, [email]);
-
-      if (result.rows.length === 0) {
+      if (!user) {
         return reply.code(401).send({ error: 'Invalid credentials' });
       }
 
-      const user = result.rows[0];
-
-      // Check password
-      const isValidPassword = await bcrypt.compare(password, user.password_hash);
+      // Check password (user.passwordHash contains the hash from database)
+      const isValidPassword = await bcrypt.compare(password, user.passwordHash);
       if (!isValidPassword) {
         return reply.code(401).send({ error: 'Invalid credentials' });
       }
@@ -76,17 +54,14 @@ export async function authRoutes(fastify: FastifyInstance) {
       }
 
       // Update last login
-      await db.query(
-        'UPDATE users SET "lastLogin" = NOW() WHERE id = $1',
-        [user.id]
-      );
+      await userDao.updateLastLogin(user.id);
 
       // Generate JWT token
       const token = jwt.sign(
         {
           userId: user.id,
           email: user.email,
-          role: user.role_name
+          role: user.roleName
         },
         config.JWT_SECRET,
         { expiresIn: '24h' }
@@ -102,11 +77,10 @@ export async function authRoutes(fastify: FastifyInstance) {
         lastLogin: new Date(),
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
-        role: user.role_id ? {
-          id: user.role_id,
-          name: user.role_name,
-          description: user.role_description,
-          permissions: user.permissions?.filter((p: any) => p !== null) || []
+        role: user.roleId ? {
+          id: user.roleId,
+          name: user.roleName,
+          permissions: user.rolePermissions?.filter((p: any) => p !== null) || []
         } : null
       };
 
@@ -132,80 +106,34 @@ export async function authRoutes(fastify: FastifyInstance) {
       }
 
       // Check if user already exists
-      const existingUser = await db.query(
-        'SELECT id FROM users WHERE email = $1',
-        [email]
-      );
-
-      if (existingUser.rows.length > 0) {
+      const existingUser = await userDao.getUserByEmail(email);
+      if (existingUser) {
         return reply.code(409).send({ error: 'User already exists' });
       }
 
       // Hash password
-      const saltRounds = 12;
-      const passwordHash = await bcrypt.hash(password, saltRounds);
+      const passwordHash = await bcrypt.hash(password, 12);
 
-      // Get default role (user role)
-      const roleQuery = await db.query(
-        'SELECT id FROM roles WHERE name = $1',
-        ['user']
-      );
-
-      if (roleQuery.rows.length === 0) {
-        return reply.code(500).send({ error: 'Default role not found' });
-      }
-
-      const defaultRoleId = roleQuery.rows[0].id;
-
-      // Create user
-      const insertQuery = `
-        INSERT INTO users (
-          id, email, password, "phoneNumber", status, 
-          "twoFactorEnabled", "roleId", "createdAt", "updatedAt"
-        ) VALUES (
-          uuid_generate_v4(), $1, $2, $3, $4, $5, $6, NOW(), NOW()
-        ) RETURNING id, email, "phoneNumber", status, 
-                   "twoFactorEnabled", "createdAt", 
-                   "updatedAt"
-      `;
-
-      const newUser = await db.query(insertQuery, [
+      // Create user data
+      const userData: CreateUserData = {
         email,
         passwordHash,
         phoneNumber,
-        UserStatus.ACTIVE,
-        false,
-        defaultRoleId
-      ]);
+        status: UserStatus.ACTIVE,
+        twoFactorEnabled: false
+      };
 
-      const user = newUser.rows[0];
-
-      // Generate JWT token
-      const token = jwt.sign(
-        {
-          userId: user.id,
-          email: user.email,
-          role: 'user'
-        },
-        config.JWT_SECRET,
-        { expiresIn: '24h' }
-      );
+      // Create user
+      const newUser = await userDao.createUser(userData);
 
       reply.code(201).send({
-        message: 'User registered successfully',
+        message: 'User created successfully',
         user: {
-          id: user.id,
-          email: user.email,
-          phoneNumber: user.phoneNumber,
-          status: user.status,
-          twoFactorEnabled: user.twoFactorEnabled,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
-          role: {
-            name: 'user'
-          }
-        },
-        token
+          id: newUser.id,
+          email: newUser.email,
+          phoneNumber: newUser.phoneNumber,
+          status: newUser.status
+        }
       });
 
     } catch (error) {
@@ -215,7 +143,7 @@ export async function authRoutes(fastify: FastifyInstance) {
   });
 
   // Password reset request endpoint
-  fastify.post<{ Body: PasswordResetBody }>('/password-reset-request', async (request, reply) => {
+  fastify.post<{ Body: PasswordResetBody }>('/password-reset', async (request, reply) => {
     try {
       const { email } = request.body;
 
@@ -224,82 +152,68 @@ export async function authRoutes(fastify: FastifyInstance) {
       }
 
       // Check if user exists
-      const userQuery = await db.query(
-        'SELECT id, email FROM users WHERE email = $1',
-        [email]
-      );
-
-      if (userQuery.rows.length === 0) {
-        // Don't reveal if email exists or not for security
-        return reply.send({
-          message: 'If the email exists, a password reset link will be sent'
-        });
+      const user = await userDao.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if user exists or not
+        return reply.send({ message: 'If the email exists, a reset link has been sent' });
       }
 
-      const user = userQuery.rows[0];
+      // Generate reset token
+      const resetToken = jwt.sign({ userId: user.id }, config.JWT_SECRET, { expiresIn: '1h' });
+      const resetExpires = new Date(Date.now() + 3600000); // 1 hour
 
-      // Generate reset token (expires in 1 hour)
-      const resetToken = jwt.sign(
-        { userId: user.id, type: 'password-reset' },
-        config.JWT_SECRET,
-        { expiresIn: '1h' }
-      );
-
-      // Store reset token in database (create table if needed)
-      try {
-        await db.query(`
-          CREATE TABLE IF NOT EXISTS password_reset_tokens (
-            user_id UUID PRIMARY KEY REFERENCES users(id),
-            token TEXT NOT NULL,
-            expires_at TIMESTAMP NOT NULL,
-            created_at TIMESTAMP DEFAULT NOW()
-          )
-        `);
-
-        await db.query(`
-          INSERT INTO password_reset_tokens (user_id, token, expires_at, created_at)
-          VALUES ($1, $2, NOW() + INTERVAL '1 hour', NOW())
-          ON CONFLICT (user_id) 
-          DO UPDATE SET token = $2, expires_at = NOW() + INTERVAL '1 hour', created_at = NOW()
-        `, [user.id, resetToken]);
-      } catch (tableError) {
-        console.error('Password reset token storage error:', tableError);
-      }
-
-      // TODO: Send email with reset link
-      // For now, just return success (in production, integrate with email service)
-
-      reply.send({
-        message: 'If the email exists, a password reset link will be sent',
-        // For development only - remove in production
-        resetToken: resetToken
+      // Update user with reset token
+      await userDao.updateUser(user.id, {
+        resetPasswordToken: resetToken,
+        resetPasswordExpires: resetExpires
       });
 
+      // TODO: Send email with reset token
+      // For now, just return success
+      reply.send({ message: 'If the email exists, a reset link has been sent' });
+
     } catch (error) {
-      console.error('Password reset request error:', error);
+      console.error('Password reset error:', error);
       reply.code(500).send({ error: 'Internal server error' });
     }
   });
 
-  // Get current user profile
-  fastify.get('/profile', {
-    preHandler: [authenticate]
-  }, async (request, reply) => {
+  // Get current user endpoint (protected)
+  fastify.get('/me', { preHandler: authenticate }, async (request: any, reply) => {
     try {
-      // User is available from JWT middleware
-      const userProfile = (request as any).userProfile;
+      const userId = request.user.userId;
+      const user = await userDao.getUserById(userId);
 
-      if (!userProfile) {
-        return reply.code(401).send({ error: 'Unauthorized' });
+      if (!user) {
+        return reply.code(404).send({ error: 'User not found' });
       }
 
-      reply.send({
-        user: userProfile
-      });
+      const userResponse = {
+        id: user.id,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        status: user.status,
+        twoFactorEnabled: user.twoFactorEnabled,
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        role: user.roleId ? {
+          id: user.roleId,
+          name: user.roleName,
+          permissions: user.rolePermissions?.filter((p: any) => p !== null) || []
+        } : null
+      };
+
+      reply.send({ user: userResponse });
 
     } catch (error) {
-      console.error('Profile error:', error);
+      console.error('Get user error:', error);
       reply.code(500).send({ error: 'Internal server error' });
     }
+  });
+
+  // Logout endpoint (simple response as JWT is stateless)
+  fastify.post('/logout', async (request, reply) => {
+    reply.send({ message: 'Logged out successfully' });
   });
 }

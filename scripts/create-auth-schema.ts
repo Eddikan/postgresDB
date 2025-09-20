@@ -17,22 +17,45 @@ async function createAuthTables() {
     console.log('Connected to database for auth schema creation');
 
     // Drop existing tables if they exist (to start fresh)
+    await client.query('DROP TABLE IF EXISTS role_permissions CASCADE');
+    await client.query('DROP TABLE IF EXISTS permissions CASCADE');
     await client.query('DROP TABLE IF EXISTS users CASCADE');
     await client.query('DROP TABLE IF EXISTS roles CASCADE');
     console.log('🗑️  Cleaned up existing auth tables');
+
+    // Create permissions table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS permissions (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        name VARCHAR(100) UNIQUE NOT NULL,
+        description TEXT,
+        "createdAt" TIMESTAMP DEFAULT NOW(),
+        "updatedAt" TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    console.log('✅ Permissions table created');
 
     // Create roles table
     await client.query(`
       CREATE TABLE IF NOT EXISTS roles (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         name VARCHAR(50) UNIQUE NOT NULL,
-        permissions TEXT[] DEFAULT '{}',
         description TEXT,
         "createdAt" TIMESTAMP DEFAULT NOW(),
         "updatedAt" TIMESTAMP DEFAULT NOW()
       )
     `);
     console.log('✅ Roles table created');
+
+    // Create role_permissions junction table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS role_permissions (
+        "roleId" UUID REFERENCES roles(id) ON DELETE CASCADE,
+        "permissionId" UUID REFERENCES permissions(id) ON DELETE CASCADE,
+        PRIMARY KEY ("roleId", "permissionId")
+      )
+    `);
+    console.log('✅ Role permissions junction table created');
 
     // Create users table
     await client.query(`
@@ -62,8 +85,29 @@ async function createAuthTables() {
       CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
       CREATE INDEX IF NOT EXISTS idx_users_role_id ON users("roleId");
       CREATE INDEX IF NOT EXISTS idx_roles_name ON roles(name);
+      CREATE INDEX IF NOT EXISTS idx_permissions_name ON permissions(name);
+      CREATE INDEX IF NOT EXISTS idx_role_permissions_role_id ON role_permissions("roleId");
+      CREATE INDEX IF NOT EXISTS idx_role_permissions_permission_id ON role_permissions("permissionId");
     `);
     console.log('✅ Database indexes created');
+
+    // Insert default permissions
+    const defaultPermissions = [
+      'CREATE_USER', 'READ_USER', 'UPDATE_USER', 'DELETE_USER', 'INVITE_USER',
+      'CREATE_PROJECT', 'READ_PROJECT', 'UPDATE_PROJECT', 'DELETE_PROJECT',
+      'CREATE_DRILLING', 'READ_DRILLING', 'UPDATE_DRILLING', 'DELETE_DRILLING',
+      'ADD_DATASET', 'ADD_ENTRY', 'EDIT_DATASET', 'DELETE_DATASET',
+      'MANAGE_ROLES', 'SYSTEM_SETTINGS'
+    ];
+
+    for (const permission of defaultPermissions) {
+      await client.query(`
+        INSERT INTO permissions (name, description)
+        VALUES ($1, $2)
+        ON CONFLICT (name) DO NOTHING
+      `, [permission, `Permission to ${permission.toLowerCase().replace('_', ' ')}`]);
+    }
+    console.log('✅ Default permissions created');
 
     // Insert default roles
     const defaultRoles = [
@@ -115,16 +159,35 @@ async function createAuthTables() {
     ];
 
     for (const role of defaultRoles) {
-      await client.query(`
-        INSERT INTO roles (name, description, permissions)
-        VALUES ($1, $2, $3)
+      // Insert role
+      const roleResult = await client.query(`
+        INSERT INTO roles (name, description)
+        VALUES ($1, $2)
         ON CONFLICT (name) DO UPDATE SET
           description = EXCLUDED.description,
-          permissions = EXCLUDED.permissions,
           "updatedAt" = NOW()
-      `, [role.name, role.description, role.permissions]);
+        RETURNING id
+      `, [role.name, role.description]);
+      
+      const roleId = roleResult.rows[0].id;
+
+      // Clear existing permissions for this role
+      await client.query('DELETE FROM role_permissions WHERE "roleId" = $1', [roleId]);
+
+      // Insert role permissions
+      for (const permissionName of role.permissions) {
+        const permissionResult = await client.query('SELECT id FROM permissions WHERE name = $1', [permissionName]);
+        if (permissionResult.rows.length > 0) {
+          const permissionId = permissionResult.rows[0].id;
+          await client.query(`
+            INSERT INTO role_permissions ("roleId", "permissionId")
+            VALUES ($1, $2)
+            ON CONFLICT DO NOTHING
+          `, [roleId, permissionId]);
+        }
+      }
     }
-    console.log('✅ Default roles created/updated');
+    console.log('✅ Default roles and permissions assigned');
 
     // Create default super admin user (password: passworD12345#)
     const bcrypt = require('bcrypt');
