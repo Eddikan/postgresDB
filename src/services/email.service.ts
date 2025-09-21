@@ -61,46 +61,109 @@ export class EmailService {
   }
 
   /**
-   * Send welcome email with default password to invited user
+   * Generate secure random password
    */
-  static async sendInviteEmail(
+  static generateSecurePassword(length: number = 14): string {
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const numbers = '0123456789';
+    const symbols = '!@#$%^&*';
+    const allChars = lowercase + uppercase + numbers + symbols;
+    
+    let password = '';
+    
+    // Ensure at least one character from each category
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += symbols[Math.floor(Math.random() * symbols.length)];
+    
+    // Fill the rest randomly
+    for (let i = 4; i < length; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Shuffle the password
+    return password.split('').sort(() => Math.random() - 0.5).join('');
+  }
+
+  /**
+   * Generate secure invitation token
+   */
+  static generateInvitationToken(): string {
+    const crypto = require('crypto');
+    return crypto.randomBytes(32).toString('hex');
+  }
+
+  /**
+   * Send invitation email with temporary password and activation link
+   */
+  static async sendUserInvitationEmail(
     email: string,
-    defaultPassword: string,
-    inviterName?: string
+    firstName: string | null,
+    lastName: string | null,
+    temporaryPassword: string,
+    invitationToken: string
   ): Promise<boolean> {
-    const subject = 'Welcome to Primefrontier - Account Created';
+    const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'User';
+    const activationUrl = `${config.FRONTEND_URL}/activate-account?token=${invitationToken}`;
+    
+    const subject = 'Welcome to Primefrontier - Activate Your Account';
     const text = `
-Hello,
+Hello ${fullName},
 
-You have been invited to join Primefrontier${inviterName ? ` by ${inviterName}` : ''}.
+You have been invited to join Primefrontier. Your account has been created with the following credentials:
 
-Your account has been created with the following credentials:
 Email: ${email}
-Temporary Password: ${defaultPassword}
+Temporary Password: ${temporaryPassword}
 
-Please log in and change your password immediately for security purposes.
+IMPORTANT: Your account is currently inactive. You must change your password to activate your account and access the system.
 
-Login URL: ${config.FRONTEND_URL}/login
+Please click the link below to activate your account and set a new password:
+${activationUrl}
+
+This activation link will expire in 24 hours.
+
+If you didn't expect this invitation, please ignore this email.
 
 Best regards,
 The Primefrontier Team
     `;
 
     const html = `
-      <h2>Welcome to Primefrontier!</h2>
-      <p>You have been invited to join Primefrontier${inviterName ? ` by <strong>${inviterName}</strong>` : ''}.</p>
-      
-      <h3>Your Account Details:</h3>
-      <ul>
-        <li><strong>Email:</strong> ${email}</li>
-        <li><strong>Temporary Password:</strong> <code>${defaultPassword}</code></li>
-      </ul>
-      
-      <p><strong>Important:</strong> Please log in and change your password immediately for security purposes.</p>
-      
-      <p><a href="${config.FRONTEND_URL}/login" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Login to Your Account</a></p>
-      
-      <p>Best regards,<br>The Primefrontier Team</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2c3e50;">Welcome to Primefrontier!</h2>
+        
+        <p>Hello <strong>${fullName}</strong>,</p>
+        
+        <p>You have been invited to join Primefrontier. Your account has been created with the following credentials:</p>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Temporary Password:</strong> <code style="background-color: #e9ecef; padding: 2px 5px; border-radius: 3px; font-family: monospace;">${temporaryPassword}</code></p>
+        </div>
+        
+        <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p><strong>⚠️ IMPORTANT:</strong> Your account is currently <strong>inactive</strong>. You must change your password to activate your account and access the system.</p>
+        </div>
+        
+        <p style="text-align: center; margin: 30px 0;">
+          <a href="${activationUrl}" 
+             style="background-color: #3498db; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+            Activate Your Account
+          </a>
+        </p>
+        
+        <p style="font-size: 14px; color: #7f8c8d;">
+          This activation link will expire in <strong>24 hours</strong>. If you don't activate your account within this time, please contact your administrator.
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #ecf0f1; margin: 30px 0;">
+        
+        <p style="font-size: 12px; color: #95a5a6;">
+          If you didn't expect this invitation, please ignore this email or contact support.
+        </p>
+      </div>
     `;
 
     return this.sendEmail(email, subject, text, html);

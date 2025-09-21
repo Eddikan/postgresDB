@@ -21,14 +21,14 @@ passport.use(new JwtStrategy(jwtOptions, async (payload, done) => {
         u."lastLogin",
         u."createdAt",
         u."updatedAt",
-        r.id as role_id,
-        r.name as role_name,
-        r.description as role_description,
-        array_agg(p.name) as permissions
+        r.id as "roleId",
+        r.name as "roleName",
+        r.description as "roleDescription",
+        array_agg(p.name) FILTER (WHERE p.name IS NOT NULL) as permissions
       FROM users u
       LEFT JOIN roles r ON u."roleId" = r.id
-      LEFT JOIN role_permissions rp ON r.id = rp.role_id
-      LEFT JOIN permissions p ON rp.permission_id = p.id
+      LEFT JOIN role_permissions rp ON r.id = rp."roleId"
+      LEFT JOIN permissions p ON rp."permissionId" = p.id
       WHERE u.id = $1
       GROUP BY u.id, r.id, r.name, r.description
     `;
@@ -51,10 +51,10 @@ passport.use(new JwtStrategy(jwtOptions, async (payload, done) => {
       lastLogin: userData.lastLogin,
       createdAt: userData.createdAt,
       updatedAt: userData.updatedAt,
-      role: userData.role_id ? {
-        id: userData.role_id,
-        name: userData.role_name,
-        description: userData.role_description,
+      role: userData.roleId ? {
+        id: userData.roleId,
+        name: userData.roleName,
+        description: userData.roleDescription,
         permissions: userData.permissions?.filter((p: any) => p !== null) as Permission[] || []
       } : undefined
     };

@@ -6,8 +6,6 @@ import { PermissionService } from '../services/permission-sql.service';
 export enum UserStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive', 
-  PENDING = 'pending',
-  SUSPENDED = 'suspended'
 }
 
 // Permission enum (matching our database permissions)
@@ -69,7 +67,7 @@ export const authenticate = async (request: FastifyRequest, reply: FastifyReply)
       }
       
       if (!user) {
-        return reply.code(401).send({ error: 'Unauthorized' });
+        return reply.code(401).send({ error: 'Unauthorized Access' });
       }
 
       // Check if user is active
@@ -89,7 +87,7 @@ export const authenticate = async (request: FastifyRequest, reply: FastifyReply)
 export const requirePermission = (permission: Permission) => {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.userProfile) {
-      return reply.code(401).send({ error: 'Unauthorized' });
+      return reply.code(401).send({ error: 'Unauthorized Access' });
     }
 
     if (!PermissionService.hasPermission(request.userProfile, permission)) {
@@ -104,7 +102,7 @@ export const requirePermission = (permission: Permission) => {
 export const requireAnyPermission = (permissions: Permission[]) => {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.userProfile) {
-      return reply.code(401).send({ error: 'Unauthorized' });
+      return reply.code(401).send({ error: 'Unauthorized Access' });
     }
 
     if (!PermissionService.hasAnyPermission(request.userProfile, permissions)) {
@@ -118,7 +116,7 @@ export const requireAnyPermission = (permissions: Permission[]) => {
  */
 export const requireAdmin = async (request: FastifyRequest, reply: FastifyReply) => {
   if (!request.userProfile) {
-    return reply.code(401).send({ error: 'Unauthorized' });
+    return reply.code(401).send({ error: 'Unauthorized Access' });
   }
 
   if (!PermissionService.isAdmin(request.userProfile)) {
@@ -131,7 +129,7 @@ export const requireAdmin = async (request: FastifyRequest, reply: FastifyReply)
  */
 export const requireSuperAdmin = async (request: FastifyRequest, reply: FastifyReply) => {
   if (!request.userProfile) {
-    return reply.code(401).send({ error: 'Unauthorized' });
+    return reply.code(401).send({ error: 'Unauthorized Access' });
   }
 
   if (!PermissionService.isSuperAdmin(request.userProfile)) {

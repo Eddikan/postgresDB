@@ -24,12 +24,12 @@ export class UserDao extends BaseDao {
   async getUserById(id: string): Promise<UserWithRole | null> {
     const query = `
       SELECT 
-        u.id, u.email, u."phoneNumber", u.password as "passwordHash", u.status,
+        u.id, u.email, u."firstName", u."lastName", u."phoneNumber", u.password as "passwordHash", u.status,
         u."twoFactorEnabled", u."twoFactorSecret", u."lastLogin",
         u."resetPasswordToken", u."resetPasswordExpires", u."invitationToken",
         u."invitationExpires", u."createdAt", u."updatedAt", u."roleId",
-        r.name as roleName,
-        array_agg(p.name) FILTER (WHERE p.name IS NOT NULL) as rolePermissions
+        r.name as "roleName",
+        array_agg(p.name) FILTER (WHERE p.name IS NOT NULL) as "rolePermissions"
       FROM users u
       LEFT JOIN roles r ON u."roleId" = r.id
       LEFT JOIN role_permissions rp ON r.id = rp."roleId"
@@ -50,12 +50,12 @@ export class UserDao extends BaseDao {
   async getUserByEmail(email: string): Promise<UserWithRole | null> {
     const query = `
       SELECT 
-        u.id, u.email, u."phoneNumber", u.password as "passwordHash", u.status,
+        u.id, u.email, u."firstName", u."lastName", u."phoneNumber", u.password as "passwordHash", u.status,
         u."twoFactorEnabled", u."twoFactorSecret", u."lastLogin",
         u."resetPasswordToken", u."resetPasswordExpires", u."invitationToken",
         u."invitationExpires", u."createdAt", u."updatedAt", u."roleId",
-        r.name as roleName,
-        array_agg(p.name) FILTER (WHERE p.name IS NOT NULL) as rolePermissions
+        r.name as "roleName",
+        array_agg(p.name) FILTER (WHERE p.name IS NOT NULL) as "rolePermissions"
       FROM users u
       LEFT JOIN roles r ON u."roleId" = r.id
       LEFT JOIN role_permissions rp ON r.id = rp."roleId"
@@ -78,21 +78,6 @@ export class UserDao extends BaseDao {
       SELECT * FROM users 
       WHERE "resetPasswordToken" = $1 
       AND "resetPasswordExpires" > NOW()
-    `;
-    
-    const result = await this.query<User>(query, [token]);
-    return result.rows[0] || null;
-  }
-
-  /**
-   * Get user by email verification token
-   * @param token Email verification token
-   * @returns User or null
-   */
-  async getUserByEmailVerificationToken(token: string): Promise<User | null> {
-    const query = `
-      SELECT * FROM users 
-      WHERE "emailVerificationToken" = $1
     `;
     
     const result = await this.query<User>(query, [token]);
@@ -198,7 +183,7 @@ export class UserDao extends BaseDao {
     }
 
     if (search) {
-      conditions.push(`u.email ILIKE $${paramIndex}`);
+      conditions.push(`(u.email ILIKE $${paramIndex} OR u."firstName" ILIKE $${paramIndex} OR u."lastName" ILIKE $${paramIndex})`);
       params.push(`%${search}%`);
       paramIndex++;
     }
@@ -217,10 +202,10 @@ export class UserDao extends BaseDao {
     // Get users with pagination
     const usersQuery = `
       SELECT 
-        u.id, u.email, u."phoneNumber", u."isEmailVerified",
+        u.id, u.email, u."firstName", u."lastName", u."phoneNumber",
         u."twoFactorEnabled", u.status, u."lastLogin", u."createdAt", u."updatedAt", u."roleId",
-        r.name as roleName,
-        array_agg(p.name) as rolePermissions
+        r.name as "roleName",
+        array_agg(p.name) as "rolePermissions"
       FROM users u
       LEFT JOIN roles r ON u."roleId" = r.id
       LEFT JOIN role_permissions rp ON r.id = rp."roleId"
@@ -263,21 +248,6 @@ export class UserDao extends BaseDao {
     const query = `
       UPDATE users 
       SET "resetPasswordToken" = NULL, "resetPasswordExpires" = NULL
-      WHERE id = $1
-    `;
-    const result = await this.query(query, [id]);
-    return (result.rowCount ?? 0) > 0;
-  }
-
-  /**
-   * Verify user's email
-   * @param id User ID
-   * @returns Boolean indicating success
-   */
-  async verifyEmail(id: string): Promise<boolean> {
-    const query = `
-      UPDATE users 
-      SET "isEmailVerified" = true, "emailVerificationToken" = NULL
       WHERE id = $1
     `;
     const result = await this.query(query, [id]);

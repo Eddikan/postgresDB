@@ -4,7 +4,7 @@ import fastifyCors from '@fastify/cors';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyJwt from '@fastify/jwt';
-import { authRoutes, userRoutes, projectRoutes, drillingRoutes } from './routes';
+import { authRoutes, userRoutes, projectRoutes, drillingRoutes, profileRoutes, roleRoutes, invitationRoutes } from './routes';
 import database, { connectDatabase } from './config/database';
 import * as dotenv from 'dotenv';
 import pg from 'pg';
@@ -59,6 +59,9 @@ async function main() {
 
   // Register routes
   await server.register(authRoutes, { prefix: '/auth' });
+  await server.register(profileRoutes, { prefix: '/' });
+  await server.register(roleRoutes, { prefix: '/' });
+  await server.register(invitationRoutes, { prefix: '/invitations' });
   await server.register(userRoutes, { prefix: '/users' });
   await server.register(projectRoutes, { prefix: '/projects' });
   await server.register(drillingRoutes, { prefix: '/drillings' });

@@ -1,4 +1,4 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyInstance } from 'fastify';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { UserDao } from '../dataaccess';
@@ -16,7 +16,6 @@ interface LoginBody {
 interface RegisterBody {
   email: string;
   password: string;
-  phoneNumber?: string;
 }
 
 interface PasswordResetBody {
@@ -37,7 +36,6 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       // Get user with role and permissions using UserDao
       const user = await userDao.getUserByEmail(email);
-
       if (!user) {
         return reply.code(401).send({ error: 'Invalid credentials' });
       }
@@ -99,7 +97,7 @@ export async function authRoutes(fastify: FastifyInstance) {
   // Register endpoint
   fastify.post<{ Body: RegisterBody }>('/register', async (request, reply) => {
     try {
-      const { email, password, phoneNumber } = request.body;
+      const { email, password } = request.body;
 
       if (!email || !password) {
         return reply.code(400).send({ error: 'Email and password are required' });
@@ -118,8 +116,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       const userData: CreateUserData = {
         email,
         passwordHash,
-        phoneNumber,
-        status: UserStatus.ACTIVE,
+        status: UserStatus.INACTIVE,
         twoFactorEnabled: false
       };
 
@@ -131,7 +128,6 @@ export async function authRoutes(fastify: FastifyInstance) {
         user: {
           id: newUser.id,
           email: newUser.email,
-          phoneNumber: newUser.phoneNumber,
           status: newUser.status
         }
       });
@@ -174,40 +170,6 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     } catch (error) {
       console.error('Password reset error:', error);
-      reply.code(500).send({ error: 'Internal server error' });
-    }
-  });
-
-  // Get current user endpoint (protected)
-  fastify.get('/me', { preHandler: authenticate }, async (request: any, reply) => {
-    try {
-      const userId = request.user.userId;
-      const user = await userDao.getUserById(userId);
-
-      if (!user) {
-        return reply.code(404).send({ error: 'User not found' });
-      }
-
-      const userResponse = {
-        id: user.id,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-        status: user.status,
-        twoFactorEnabled: user.twoFactorEnabled,
-        lastLogin: user.lastLogin,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-        role: user.roleId ? {
-          id: user.roleId,
-          name: user.roleName,
-          permissions: user.rolePermissions?.filter((p: any) => p !== null) || []
-        } : null
-      };
-
-      reply.send({ user: userResponse });
-
-    } catch (error) {
-      console.error('Get user error:', error);
       reply.code(500).send({ error: 'Internal server error' });
     }
   });

@@ -5,5 +5,6 @@ export {
   requireAnyPermission, 
   requireAdmin, 
   requireSuperAdmin, 
-  optionalAuth 
+  optionalAuth,
+  Permission 
 } from './auth-sql';

@@ -5,11 +5,11 @@ dotenv.config();
 
 async function createAuthTables() {
   const client = new pg.Client({
-    user: 'ime',
-    host: 'localhost',
-    database: 'drilling_backend',
-    password: 'passworD12345#',
-    port: 5432,
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    port: parseInt(process.env.DB_PORT!),
   });
 
   try {
@@ -63,8 +63,10 @@ async function createAuthTables() {
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
+        "firstName" VARCHAR(100),
+        "lastName" VARCHAR(100),
         "phoneNumber" VARCHAR(50),
-        status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'pending', 'suspended')),
+        status VARCHAR(20) DEFAULT 'inactive' CHECK (status IN ('active', 'inactive')),
         "roleId" UUID REFERENCES roles(id) ON DELETE SET NULL,
         "twoFactorEnabled" BOOLEAN DEFAULT false,
         "twoFactorSecret" VARCHAR(255),
@@ -198,13 +200,13 @@ async function createAuthTables() {
     const superAdminRoleId = roleResult.rows[0].id;
 
     await client.query(`
-      INSERT INTO users (email, password, "roleId", status)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO users (email, password, "firstName", "lastName", "roleId", status)
+      VALUES ($1, $2, $3, $4, $5, $6)
       ON CONFLICT (email) DO UPDATE SET
         password = EXCLUDED.password,
         "roleId" = EXCLUDED."roleId",
         "updatedAt" = NOW()
-    `, ['imeekwere15@gmail.com', hashedPassword, superAdminRoleId, 'active']);
+    `, ['imeekwere15@gmail.com', hashedPassword, 'Ime', 'Ekwere', superAdminRoleId, 'active']);
     
     console.log('✅ Default super admin user created (imeekwere15@gmail.com / passworD12345#)');
     console.log('🎉 Authentication schema setup completed successfully');

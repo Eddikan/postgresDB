@@ -2,14 +2,14 @@
 export enum UserStatus {
   INACTIVE = 'inactive',
   ACTIVE = 'active',
-  PENDING = 'pending',
-  SUSPENDED = 'suspended'
 }
 
 // User interface for raw SQL operations
 export interface User {
   id: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
   phoneNumber?: string;
   passwordHash: string;
   status: UserStatus;
@@ -18,6 +18,8 @@ export interface User {
   twoFactorEnabled: boolean;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
+  invitationToken?: string;
+  invitationExpires?: Date;
   lastLogin?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -26,6 +28,8 @@ export interface User {
 // User creation interface (without auto-generated fields)
 export interface CreateUserData {
   email: string;
+  firstName?: string;
+  lastName?: string;
   phoneNumber?: string;
   passwordHash: string;
   status?: UserStatus;
@@ -37,6 +41,8 @@ export interface CreateUserData {
 export interface UpdateUserData {
   id: string;
   email?: string;
+  firstName?: string;
+  lastName?: string;
   phoneNumber?: string;
   passwordHash?: string;
   status?: UserStatus;
@@ -45,5 +51,7 @@ export interface UpdateUserData {
   twoFactorEnabled?: boolean;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
+  invitationToken?: string | null;
+  invitationExpires?: Date | null;
   lastLogin?: Date;
 }
