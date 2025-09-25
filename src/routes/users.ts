@@ -3,7 +3,7 @@ import { UserDao } from '../dataaccess';
 import { DatabaseConnection } from '../datasource';
 import { authenticate, requirePermission, Permission } from '../middleware';
 import { requireActiveAccount } from '../middleware/account-status';
-import { UserStatus } from '../entities';
+import { AccountStatus } from '../entities';
 
 export async function userRoutes(fastify: FastifyInstance) {
   // Initialize DAO
@@ -71,8 +71,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        phoneNumber: user.phoneNumber,
-        status: user.status,
+        accountStatus: user.accountStatus,
         twoFactorEnabled: user.twoFactorEnabled,
         lastLogin: user.lastLogin,
         createdAt: user.createdAt,
@@ -139,8 +138,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        phoneNumber: user.phoneNumber,
-        status: user.status,
+        accountStatus: user.accountStatus,
         twoFactorEnabled: user.twoFactorEnabled,
         lastLogin: user.lastLogin,
         createdAt: user.createdAt,
@@ -175,8 +173,7 @@ export async function userRoutes(fastify: FastifyInstance) {
       email?: string;
       firstName?: string;
       lastName?: string;
-      phoneNumber?: string;
-      status?: UserStatus;
+      accountStatus?: AccountStatus;
       roleId?: string;
       twoFactorEnabled?: boolean;
     };
@@ -230,8 +227,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         email: user!.email,
         firstName: user!.firstName,
         lastName: user!.lastName,
-        phoneNumber: user!.phoneNumber,
-        status: user!.status,
+        accountStatus: user!.accountStatus,
         twoFactorEnabled: user!.twoFactorEnabled,
         lastLogin: user!.lastLogin,
         createdAt: user!.createdAt,

@@ -1,12 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import passport from './passport';
 import { PermissionService } from '../services/permission-sql.service';
-
-// User status enum
-export enum UserStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive', 
-}
+import { AccountStatus } from '../entities';
 
 // Permission enum (matching our database permissions)
 export enum Permission {
@@ -35,8 +30,7 @@ export enum Permission {
 export interface UserProfile {
   id: string;
   email: string;
-  phoneNumber?: string;
-  status: UserStatus;
+  accountStatus: AccountStatus;
   twoFactorEnabled: boolean;
   lastLogin?: Date;
   createdAt: Date;
@@ -71,7 +65,7 @@ export const authenticate = async (request: FastifyRequest, reply: FastifyReply)
       }
 
       // Check if user is active
-      if (user.status !== UserStatus.ACTIVE) {
+      if (user.accountStatus !== AccountStatus.ACTIVE) {
         return reply.code(403).send({ error: 'Account is inactive' });
       }
 
@@ -143,7 +137,7 @@ export const requireSuperAdmin = async (request: FastifyRequest, reply: FastifyR
 export const optionalAuth = async (request: FastifyRequest, reply: FastifyReply) => {
   return new Promise((resolve) => {
     passport.authenticate('jwt', { session: false }, (err: any, user: UserProfile) => {
-      if (user && user.status === UserStatus.ACTIVE) {
+      if (user && user.accountStatus === AccountStatus.ACTIVE) {
         request.userProfile = user;
       }
       resolve(user || null);

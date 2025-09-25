@@ -7,7 +7,9 @@
     "build": "tsc",
     "dev": "nodemon src/server.ts",
     "start": "node dist/server.js",
-    "seed": "ts-node scripts/create-auth-schema.ts",
+    "db:create": "ts-node scripts/create-auth-schema.ts",
+    "db:seed": "ts-node scripts/seed-database.ts",
+    "seed": "npm run db:create && npm run db:seed",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

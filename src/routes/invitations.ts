@@ -4,7 +4,7 @@ import { UserDao } from '../dataaccess';
 import { DatabaseConnection } from '../datasource';
 import { EmailService } from '../services';
 import { authenticate, requirePermission, Permission } from '../middleware';
-import { CreateUserData, UserStatus } from '../entities';
+import { CreateUserData, AccountStatus } from '../entities';
 
 /**
  * User invitation routes
@@ -57,7 +57,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         firstName,
         lastName,
         passwordHash,
-        status: UserStatus.INACTIVE,
+        accountStatus: AccountStatus.INACTIVE,
         roleId,
         twoFactorEnabled: false
       };
@@ -86,7 +86,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
           email: newUser.email,
           firstName: newUser.firstName,
           lastName: newUser.lastName,
-          status: newUser.status,
+          accountStatus: newUser.accountStatus,
           roleId: newUser.roleId
         }
       });
@@ -147,7 +147,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
       // Update user: activate account, set new password, clear invitation token
       await userDao.updateUser(user.id, {
         passwordHash,
-        status: UserStatus.ACTIVE,
+        accountStatus: AccountStatus.ACTIVE,
         invitationToken: null,
         invitationExpires: null
       });
@@ -193,7 +193,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
       }
 
       // Check if user is still inactive
-      if (user.status !== UserStatus.INACTIVE) {
+      if (user.accountStatus !== AccountStatus.INACTIVE) {
         return reply.status(400).send({
           error: 'User account is already active'
         });
@@ -262,7 +262,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
       }
 
       // Check if user is already active
-      if (user.status === UserStatus.ACTIVE) {
+      if (user.accountStatus === AccountStatus.ACTIVE) {
         return reply.status(400).send({
           valid: false,
           error: 'Account is already active'

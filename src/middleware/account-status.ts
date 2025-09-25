@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { UserStatus } from './auth-sql';
+import { AccountStatus } from '../entities';
 
 /**
  * Middleware to check if user's account is active
@@ -28,10 +28,10 @@ export const checkAccountActive = async (request: FastifyRequest, reply: Fastify
   }
 
   // Block access if account is not active
-  if (request.userProfile.status !== UserStatus.ACTIVE) {
+  if (request.userProfile.accountStatus !== AccountStatus.ACTIVE) {
     return reply.code(403).send({
       error: 'Account inactive. Please change your password to activate your account.',
-      accountStatus: request.userProfile.status,
+      accountStatus: request.userProfile.accountStatus,
       activationRequired: true
     });
   }
@@ -46,10 +46,10 @@ export const requireActiveAccount = async (request: FastifyRequest, reply: Fasti
     return reply.code(401).send({ error: 'Authentication required' });
   }
 
-  if (request.userProfile.status !== UserStatus.ACTIVE) {
+  if (request.userProfile.accountStatus !== AccountStatus.ACTIVE) {
     return reply.code(403).send({
       error: 'Account inactive. Please change your password to activate your account.',
-      accountStatus: request.userProfile.status,
+      accountStatus: request.userProfile.accountStatus,
       activationRequired: true
     });
   }
