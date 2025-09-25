@@ -1,0 +1,80 @@
+name: Main Branch Validation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate-production-ready:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: 🧪 Run comprehensive tests
+      run: |
+        echo "🔍 Running full test suite for main branch..."
+        npm test
+        echo "✅ All tests passed"
+
+    - name: 🏗️ Production build test
+      run: |
+        echo "🔍 Testing production build..."
+        npm run build
+        echo "✅ Production build successful"
+      env:
+        NODE_ENV: production
+
+    - name: 🔒 Security audit
+      run: |
+        echo "🔍 Running security audit..."
+        npm audit --audit-level moderate
+        echo "✅ Security audit passed"
+
+    - name: 📊 Bundle analysis
+      run: |
+        echo "📦 Analyzing bundle size..."
+        du -sh dist/ 2>/dev/null || echo "No dist folder (normal for API)"
+        echo "✅ Bundle analysis complete"
+
+    - name: ✅ Production Readiness Summary
+      run: |
+        echo "## 🎯 Production Readiness Check" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch:** main" >> $GITHUB_STEP_SUMMARY
+        echo "- **Tests:** ✅ Passed" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build:** ✅ Successful" >> $GITHUB_STEP_SUMMARY
+        echo "- **Security:** ✅ Audit passed" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status:** 🟢 **READY FOR MANUAL DEPLOYMENT**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🚀 To Deploy to Production:" >> $GITHUB_STEP_SUMMARY
+        echo "1. Go to **Actions** tab" >> $GITHUB_STEP_SUMMARY
+        echo "2. Select **Production Deployment**" >> $GITHUB_STEP_SUMMARY  
+        echo "3. Click **Run workflow**" >> $GITHUB_STEP_SUMMARY
+        echo "4. Type **DEPLOY** to confirm" >> $GITHUB_STEP_SUMMARY
+        echo "5. Click **Run workflow** button" >> $GITHUB_STEP_SUMMARY
+
+  notify-ready-for-deploy:
+    runs-on: ubuntu-latest
+    needs: validate-production-ready
+    if: success() && github.event_name == 'push'
+    
+    steps:
+    - name: 📢 Deployment Ready Notification
+      run: |
+        echo "🎉 Main branch updated and validated!"
+        echo "📋 Code is ready for manual production deployment"
+        echo "🔗 Go to Actions → Production Deployment to deploy manually"
+        # Add notifications here (Slack, Discord, etc.)
+        # curl -X POST $SLACK_WEBHOOK -d '{"text":"🚀 Main branch ready for deployment!"}'
