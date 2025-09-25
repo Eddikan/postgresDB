@@ -3,7 +3,7 @@ import { UserDao } from '../dataaccess';
 import { DatabaseConnection } from '../datasource';
 import { authenticate, requirePermission, Permission } from '../middleware';
 import { requireActiveAccount } from '../middleware/account-status';
-import { UserStatus } from '../entities';
+import { AccountStatus } from '../entities';
 
 export async function userRoutes(fastify: FastifyInstance) {
   // Initialize DAO
@@ -19,14 +19,13 @@ export async function userRoutes(fastify: FastifyInstance) {
       page?: string;
       limit?: string;
       roleId?: string;
-      isActive?: string;
-      search?: string;
+      status?: string;
     };
   }>('/', {
-    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.READ_USER)]
+    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.SYSTEM_MANAGE_USERS)]
   }, async (request, reply) => {
     try {
-      const { page = '1', limit = '10', roleId, isActive, search } = request.query;
+      const { page = '1', limit = '10', roleId, status } = request.query;
 
       // Parse and validate query parameters
       const pageNum = parseInt(page, 10);
@@ -54,12 +53,8 @@ export async function userRoutes(fastify: FastifyInstance) {
         queryOptions.roleId = roleId;
       }
 
-      if (isActive !== undefined) {
-        queryOptions.isActive = isActive === 'true';
-      }
-
-      if (search) {
-        queryOptions.search = search.trim();
+      if (status) {
+        queryOptions.status = status;
       }
 
       // Get users with pagination
@@ -71,8 +66,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        phoneNumber: user.phoneNumber,
-        status: user.status,
+        accountStatus: user.accountStatus,
         twoFactorEnabled: user.twoFactorEnabled,
         lastLogin: user.lastLogin,
         createdAt: user.createdAt,
@@ -112,7 +106,7 @@ export async function userRoutes(fastify: FastifyInstance) {
       id: string;
     };
   }>('/:id', {
-    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.READ_USER)]
+    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.SYSTEM_MANAGE_USERS)]
   }, async (request, reply) => {
     try {
       const { id } = request.params;
@@ -139,8 +133,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        phoneNumber: user.phoneNumber,
-        status: user.status,
+        accountStatus: user.accountStatus,
         twoFactorEnabled: user.twoFactorEnabled,
         lastLogin: user.lastLogin,
         createdAt: user.createdAt,
@@ -175,13 +168,12 @@ export async function userRoutes(fastify: FastifyInstance) {
       email?: string;
       firstName?: string;
       lastName?: string;
-      phoneNumber?: string;
-      status?: UserStatus;
+      accountStatus?: AccountStatus;
       roleId?: string;
       twoFactorEnabled?: boolean;
     };
   }>('/:id', {
-    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.UPDATE_USER)]
+    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.SYSTEM_MANAGE_USERS)]
   }, async (request, reply) => {
     try {
       const { id } = request.params;
@@ -230,8 +222,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         email: user!.email,
         firstName: user!.firstName,
         lastName: user!.lastName,
-        phoneNumber: user!.phoneNumber,
-        status: user!.status,
+        accountStatus: user!.accountStatus,
         twoFactorEnabled: user!.twoFactorEnabled,
         lastLogin: user!.lastLogin,
         createdAt: user!.createdAt,
@@ -263,7 +254,7 @@ export async function userRoutes(fastify: FastifyInstance) {
       id: string;
     };
   }>('/:id', {
-    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.DELETE_USER)]
+    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.SYSTEM_MANAGE_USERS)]
   }, async (request, reply) => {
     try {
       const { id } = request.params;

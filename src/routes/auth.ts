@@ -3,9 +3,9 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { UserDao } from '../dataaccess';
 import { databaseConnection } from '../datasource';
-import { UserStatus, Permission, authenticate } from '../middleware/auth-sql';
+import { Permission, authenticate } from '../middleware/auth-sql';
 import { config } from '../config/config';
-import { CreateUserData } from '../entities';
+import { CreateUserData, AccountStatus } from '../entities';
 
 // Request body interfaces
 interface LoginBody {
@@ -47,7 +47,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       }
 
       // Check if user is active
-      if (user.status !== UserStatus.ACTIVE) {
+      if (user.accountStatus !== AccountStatus.ACTIVE) {
         return reply.code(403).send({ error: 'Account is inactive' });
       }
 
@@ -69,8 +69,9 @@ export async function authRoutes(fastify: FastifyInstance) {
       const userResponse = {
         id: user.id,
         email: user.email,
-        phoneNumber: user.phoneNumber,
-        status: user.status,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        accountStatus: user.accountStatus,
         twoFactorEnabled: user.twoFactorEnabled,
         lastLogin: new Date(),
         createdAt: user.createdAt,
@@ -116,7 +117,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       const userData: CreateUserData = {
         email,
         passwordHash,
-        status: UserStatus.INACTIVE,
+        accountStatus: AccountStatus.PENDING,
         twoFactorEnabled: false
       };
 
@@ -128,7 +129,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         user: {
           id: newUser.id,
           email: newUser.email,
-          status: newUser.status
+          accountStatus: newUser.accountStatus
         }
       });
 
@@ -154,19 +155,17 @@ export async function authRoutes(fastify: FastifyInstance) {
         return reply.send({ message: 'If the email exists, a reset link has been sent' });
       }
 
-      // Generate reset token
-      const resetToken = jwt.sign({ userId: user.id }, config.JWT_SECRET, { expiresIn: '1h' });
-      const resetExpires = new Date(Date.now() + 3600000); // 1 hour
-
-      // Update user with reset token
-      await userDao.updateUser(user.id, {
-        resetPasswordToken: resetToken,
-        resetPasswordExpires: resetExpires
-      });
+      // Generate reset token (simplified version - in production, store in Redis or external service)
+      const resetToken = jwt.sign({ userId: user.id, type: 'password_reset' }, config.JWT_SECRET, { expiresIn: '1h' });
 
       // TODO: Send email with reset token
-      // For now, just return success
-      reply.send({ message: 'If the email exists, a reset link has been sent' });
+      // For now, just return success (in production, would store token in Redis/cache and send email)
+      console.log('Password reset token generated for user:', user.email, 'Token:', resetToken);
+      reply.send({ 
+        message: 'If the email exists, a reset link has been sent',
+        // Remove this in production - only for development
+        resetToken 
+      });
 
     } catch (error) {
       console.error('Password reset error:', error);

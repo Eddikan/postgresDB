@@ -66,7 +66,7 @@ export async function roleRoutes(fastify: FastifyInstance) {
 
   // Create new role (super admin only)
   fastify.post('/roles', { 
-    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.MANAGE_ROLES)] 
+    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.SYSTEM_MANAGE_USERS)] 
   }, async (request: any, reply) => {
     try {
       const { name, description, permissions } = request.body;
@@ -119,7 +119,7 @@ export async function roleRoutes(fastify: FastifyInstance) {
 
   // Update role (super admin only)
   fastify.put('/roles/:id', { 
-    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.MANAGE_ROLES)] 
+    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.SYSTEM_MANAGE_USERS)] 
   }, async (request: any, reply) => {
     try {
       const { id } = request.params;
@@ -178,7 +178,7 @@ export async function roleRoutes(fastify: FastifyInstance) {
 
   // Delete role (super admin only)
   fastify.delete('/roles/:id', { 
-    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.MANAGE_ROLES)] 
+    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.SYSTEM_MANAGE_USERS)] 
   }, async (request: any, reply) => {
     try {
       const { id } = request.params;

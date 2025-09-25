@@ -5,34 +5,34 @@ import fastifyHelmet from '@fastify/helmet';
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyJwt from '@fastify/jwt';
 import { authRoutes, userRoutes, projectRoutes, drillingRoutes, profileRoutes, roleRoutes, invitationRoutes } from './routes';
-import database, { connectDatabase } from './config/database';
+import pool, { connectDatabase } from './config/database';
 import * as dotenv from 'dotenv';
 import pg from 'pg';
 
 dotenv.config();
 
-// Extend Fastify instance to include db
+// Extend Fastify instance to include db pool
 declare module 'fastify' {
   interface FastifyInstance {
-    db: pg.Client;
+    db: pg.Pool;
   }
 }
 
 const server = Fastify({ logger: true });
 
 async function main() {
-  // Connect to database
+  // Connect to database pool
   try {
     await connectDatabase();
-    server.log.info('✅ Database connected successfully');
+    server.log.info('✅ Database pool initialized successfully');
   } catch (err) {
     server.log.error('❌ Database connection failed:');
     console.error(err);
     process.exit(1);
   }
 
-  // Make db accessible in routes
-  server.decorate('db', database);
+  // Make db pool accessible in routes
+  server.decorate('db', pool);
 
   // Register Express compatibility
   await server.register(fastifyExpress);
