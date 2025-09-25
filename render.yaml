@@ -1,0 +1,27 @@
+version: "1"
+
+services:
+  - type: web
+    name: primefrontier-backend
+    env: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        fromService:
+          type: web
+          name: primefrontier-backend
+          property: port
+    # Auto-deploy from main branch
+    branch: main
+    
+  # Optional: Add a PostgreSQL database
+  - type: pgsql
+    name: primefrontier-db
+    databaseName: drillindb
+    databaseUser: drillindb_user
+    plan: free
