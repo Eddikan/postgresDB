@@ -24,10 +24,10 @@ export class UserDao extends BaseDao {
   async getUserById(id: string): Promise<UserWithRole | null> {
     const query = `
       SELECT 
-        u.id, u.email, u."firstName", u."lastName", u."phoneNumber", u.password as "passwordHash", u.status,
+        u.id, u.email, u."firstName", u."lastName", u.password as "passwordHash", u."accountStatus",
         u."twoFactorEnabled", u."twoFactorSecret", u."lastLogin",
-        u."resetPasswordToken", u."resetPasswordExpires", u."invitationToken",
-        u."invitationExpires", u."createdAt", u."updatedAt", u."roleId",
+        u."invitationToken", u."invitationExpires", u."invitedBy", u."invitedAt", u."activatedAt",
+        u."createdAt", u."updatedAt", u."roleId",
         r.name as "roleName",
         array_agg(p.name) FILTER (WHERE p.name IS NOT NULL) as "rolePermissions"
       FROM users u
@@ -50,10 +50,10 @@ export class UserDao extends BaseDao {
   async getUserByEmail(email: string): Promise<UserWithRole | null> {
     const query = `
       SELECT 
-        u.id, u.email, u."firstName", u."lastName", u."phoneNumber", u.password as "passwordHash", u.status,
+        u.id, u.email, u."firstName", u."lastName", u.password as "passwordHash", u."accountStatus",
         u."twoFactorEnabled", u."twoFactorSecret", u."lastLogin",
-        u."resetPasswordToken", u."resetPasswordExpires", u."invitationToken",
-        u."invitationExpires", u."createdAt", u."updatedAt", u."roleId",
+        u."invitationToken", u."invitationExpires", u."invitedBy", u."invitedAt", u."activatedAt",
+        u."createdAt", u."updatedAt", u."roleId",
         r.name as "roleName",
         array_agg(p.name) FILTER (WHERE p.name IS NOT NULL) as "rolePermissions"
       FROM users u
@@ -69,22 +69,6 @@ export class UserDao extends BaseDao {
   }
 
   /**
-   * Get user by password reset token
-   * @param token Password reset token
-   * @returns User or null
-   */
-  async getUserByPasswordResetToken(token: string): Promise<User | null> {
-    const query = `
-      SELECT * FROM users 
-      WHERE "resetPasswordToken" = $1 
-      AND "resetPasswordExpires" > NOW()
-    `;
-    
-    const result = await this.query<User>(query, [token]);
-    return result.rows[0] || null;
-  }
-
-  /**
    * Get user by invitation token
    * @param token Invitation token
    * @returns User or null
@@ -92,7 +76,8 @@ export class UserDao extends BaseDao {
   async getUserByInvitationToken(token: string): Promise<User | null> {
     const query = `
       SELECT * FROM users 
-      WHERE "invitationToken" = $1
+      WHERE "invitationToken" = $1 
+      AND "invitationExpires" > NOW()
     `;
     
     const result = await this.query<User>(query, [token]);
@@ -202,8 +187,8 @@ export class UserDao extends BaseDao {
     // Get users with pagination
     const usersQuery = `
       SELECT 
-        u.id, u.email, u."firstName", u."lastName", u."phoneNumber",
-        u."twoFactorEnabled", u.status, u."lastLogin", u."createdAt", u."updatedAt", u."roleId",
+        u.id, u.email, u."firstName", u."lastName",
+        u."twoFactorEnabled", u."accountStatus", u."lastLogin", u."createdAt", u."updatedAt", u."roleId",
         r.name as "roleName",
         array_agg(p.name) as "rolePermissions"
       FROM users u
@@ -240,14 +225,14 @@ export class UserDao extends BaseDao {
   }
 
   /**
-   * Clear password reset token
+   * Clear invitation token after activation
    * @param id User ID
    * @returns Boolean indicating success
    */
-  async clearPasswordResetToken(id: string): Promise<boolean> {
+  async clearInvitationToken(id: string): Promise<boolean> {
     const query = `
       UPDATE users 
-      SET "resetPasswordToken" = NULL, "resetPasswordExpires" = NULL
+      SET "invitationToken" = NULL, "invitationExpires" = NULL, "activatedAt" = NOW()
       WHERE id = $1
     `;
     const result = await this.query(query, [id]);

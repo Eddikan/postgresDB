@@ -33,8 +33,9 @@ export async function profileRoutes(fastify: FastifyInstance) {
       const userResponse = {
         id: user.id,
         email: user.email,
-        phoneNumber: user.phoneNumber,
-        status: user.status,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        accountStatus: user.accountStatus,
         twoFactorEnabled: user.twoFactorEnabled,
         lastLogin: user.lastLogin,
         createdAt: user.createdAt,
@@ -91,8 +92,9 @@ export async function profileRoutes(fastify: FastifyInstance) {
       const userResponse = {
         id: user!.id,
         email: user!.email,
-        phoneNumber: user!.phoneNumber,
-        status: user!.status,
+        firstName: user!.firstName,
+        lastName: user!.lastName,
+        accountStatus: user!.accountStatus,
         twoFactorEnabled: user!.twoFactorEnabled,
         lastLogin: user!.lastLogin,
         createdAt: user!.createdAt,

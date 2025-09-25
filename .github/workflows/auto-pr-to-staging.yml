@@ -1,0 +1,148 @@
+name: Auto PR to Staging
+
+on:
+  push:
+    branches: [ develop ]
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Configure Git
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Check if staging branch exists
+      id: check-staging
+      run: |
+        if git ls-remote --exit-code --heads origin staging; then
+          echo "staging_exists=true" >> $GITHUB_OUTPUT
+          echo "Staging branch exists"
+        else
+          echo "staging_exists=false" >> $GITHUB_OUTPUT
+          echo "Staging branch does not exist"
+        fi
+
+    - name: Create staging branch if it doesn't exist
+      if: steps.check-staging.outputs.staging_exists == 'false'
+      run: |
+        git checkout -b staging
+        git push -u origin staging
+        echo "Created staging branch"
+
+    - name: Ensure staging branch is up to date
+      if: steps.check-staging.outputs.staging_exists == 'true'
+      run: |
+        git fetch origin staging:staging
+        echo "Fetched latest staging branch"
+
+    - name: Check for existing PR
+      id: check-pr
+      run: |
+        PR_EXISTS=$(gh pr list --base staging --head develop --json number --jq '. | length')
+        if [ "$PR_EXISTS" -gt 0 ]; then
+          echo "pr_exists=true" >> $GITHUB_OUTPUT
+          echo "PR from develop to staging already exists"
+        else
+          echo "pr_exists=false" >> $GITHUB_OUTPUT
+          echo "No existing PR from develop to staging"
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Get latest commit info
+      if: steps.check-pr.outputs.pr_exists == 'false'
+      id: commit-info
+      run: |
+        COMMIT_MESSAGE=$(git log -1 --pretty=format:"%s")
+        COMMIT_AUTHOR=$(git log -1 --pretty=format:"%an")
+        COMMIT_HASH=$(git log -1 --pretty=format:"%h")
+        echo "commit_message=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
+        echo "commit_author=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
+        echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+
+    - name: Create Pull Request
+      if: steps.check-pr.outputs.pr_exists == 'false'
+      run: |
+        # Generate PR title and body
+        PR_TITLE="🚀 Auto-deploy: ${{ steps.commit-info.outputs.commit_message }}"
+        PR_BODY="## 🤖 Automated Deployment PR
+
+        **Latest Changes from develop branch**
+        
+        - **Commit:** ${{ steps.commit-info.outputs.commit_hash }}
+        - **Author:** ${{ steps.commit-info.outputs.commit_author }}
+        - **Message:** ${{ steps.commit-info.outputs.commit_message }}
+        - **Triggered by:** Push to \`develop\` branch
+        
+        ## 📋 Deployment Checklist
+        
+        - [ ] Code review completed
+        - [ ] Tests passing
+        - [ ] Environment variables updated (if needed)
+        - [ ] Database migrations ready (if any)
+        - [ ] Ready for staging deployment
+        
+        ## 🔍 Changes Summary
+        
+        This PR contains the latest changes from the \`develop\` branch ready for staging deployment.
+        
+        **Auto-generated on:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+        
+        ---
+        *This PR was automatically created by GitHub Actions*"
+        
+        # Create the PR
+        gh pr create \
+          --base staging \
+          --head develop \
+          --title "$PR_TITLE" \
+          --body "$PR_BODY" \
+          --assignee "${{ github.actor }}"
+        
+        # Try to add labels (ignore errors if labels don't exist)
+        PR_NUMBER=$(gh pr list --base staging --head develop --json number --jq '.[0].number')
+        gh pr edit $PR_NUMBER --add-label "auto-deployment" || echo "Label auto-deployment not found (will be created by setup-labels workflow)"
+        gh pr edit $PR_NUMBER --add-label "staging" || echo "Label staging not found (will be created by setup-labels workflow)"
+        
+        echo "✅ Pull Request created successfully!"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Update existing PR
+      if: steps.check-pr.outputs.pr_exists == 'true'
+      run: |
+        # Get the existing PR number
+        PR_NUMBER=$(gh pr list --base staging --head develop --json number --jq '.[0].number')
+        
+        # Add a comment about the new push
+        COMMENT_BODY="## 🔄 New changes pushed to develop
+
+        - **Commit:** ${{ steps.commit-info.outputs.commit_hash }}
+        - **Author:** ${{ steps.commit-info.outputs.commit_author }}  
+        - **Message:** ${{ steps.commit-info.outputs.commit_message }}
+        - **Pushed at:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+        
+        The PR has been automatically updated with the latest changes."
+        
+        gh pr comment $PR_NUMBER --body "$COMMENT_BODY"
+        
+        echo "✅ Existing PR updated with new changes!"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Summary
+      run: |
+        echo "## Workflow Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Triggered by:** Push to develop branch" >> $GITHUB_STEP_SUMMARY
+        echo "- **Action taken:** ${{ steps.check-pr.outputs.pr_exists == 'true' && 'Updated existing PR' || 'Created new PR' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Target branch:** staging" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY

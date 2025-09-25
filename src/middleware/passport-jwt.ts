@@ -1,7 +1,8 @@
 import passport from 'passport';
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
 import db from '../config/database';
-import { UserProfile, UserStatus, Permission } from './auth-sql';
+import { UserProfile, Permission } from './auth-sql';
+import { AccountStatus } from '../entities';
 
 const jwtOptions = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -15,8 +16,7 @@ passport.use(new JwtStrategy(jwtOptions, async (payload, done) => {
       SELECT 
         u.id,
         u.email,
-        u."phoneNumber",
-        u.status,
+        u."accountStatus",
         u."twoFactorEnabled",
         u."lastLogin",
         u."createdAt",
@@ -45,8 +45,7 @@ passport.use(new JwtStrategy(jwtOptions, async (payload, done) => {
     const userProfile: UserProfile = {
       id: userData.id,
       email: userData.email,
-      phoneNumber: userData.phoneNumber,
-      status: userData.status as UserStatus,
+      accountStatus: userData.accountStatus as AccountStatus,
       twoFactorEnabled: userData.twoFactorEnabled,
       lastLogin: userData.lastLogin,
       createdAt: userData.createdAt,
