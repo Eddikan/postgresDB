@@ -1,7 +1,9 @@
-// User status enum
-export enum UserStatus {
-  INACTIVE = 'inactive',
+// User account status enum
+export enum AccountStatus {
+  PENDING = 'pending',
   ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  SUSPENDED = 'suspended',
 }
 
 // User interface for raw SQL operations
@@ -10,16 +12,16 @@ export interface User {
   email: string;
   firstName?: string;
   lastName?: string;
-  phoneNumber?: string;
   passwordHash: string;
-  status: UserStatus;
+  accountStatus: AccountStatus;
   roleId?: string;
   twoFactorSecret?: string;
   twoFactorEnabled: boolean;
-  resetPasswordToken?: string;
-  resetPasswordExpires?: Date;
   invitationToken?: string;
   invitationExpires?: Date;
+  invitedBy?: string;
+  invitedAt?: Date;
+  activatedAt?: Date;
   lastLogin?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -30,11 +32,13 @@ export interface CreateUserData {
   email: string;
   firstName?: string;
   lastName?: string;
-  phoneNumber?: string;
   passwordHash: string;
-  status?: UserStatus;
+  accountStatus?: AccountStatus;
   roleId?: string;
   twoFactorEnabled?: boolean;
+  invitationToken?: string;
+  invitationExpires?: Date;
+  invitedBy?: string;
 }
 
 // User update interface (all fields optional except id)
@@ -43,15 +47,14 @@ export interface UpdateUserData {
   email?: string;
   firstName?: string;
   lastName?: string;
-  phoneNumber?: string;
   passwordHash?: string;
-  status?: UserStatus;
+  accountStatus?: AccountStatus;
   roleId?: string;
   twoFactorSecret?: string;
   twoFactorEnabled?: boolean;
-  resetPasswordToken?: string;
-  resetPasswordExpires?: Date;
   invitationToken?: string | null;
   invitationExpires?: Date | null;
+  invitedBy?: string;
+  activatedAt?: Date;
   lastLogin?: Date;
 }

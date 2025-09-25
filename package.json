@@ -7,8 +7,12 @@
     "build": "tsc",
     "dev": "nodemon src/server.ts",
     "start": "node dist/server.js",
-    "seed": "ts-node scripts/create-auth-schema.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "db:create": "ts-node scripts/create-auth-schema.ts",
+    "db:seed": "ts-node scripts/seed-database.ts",
+    "seed": "npm run db:create && npm run db:seed",
+    "test": "ts-node tests/basic.test.ts",
+    "test:lint": "echo \"Linting...\" && echo \"✅ No linting configured yet\"",
+    "test:build": "npm run build && echo \"✅ Build test passed\""
   },
   "keywords": [
     "fastify",

@@ -1,7 +1,7 @@
 // User exports
 export { 
   User, 
-  UserStatus, 
+  AccountStatus, 
   CreateUserData, 
   UpdateUserData 
 } from './User';

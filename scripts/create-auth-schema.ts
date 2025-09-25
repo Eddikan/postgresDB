@@ -1,20 +1,28 @@
 import pg from 'pg';
 import * as dotenv from 'dotenv';
+import bcrypt from 'bcrypt';
 
 dotenv.config();
 
+const { Pool } = pg;
+
 async function createAuthTables() {
-  const client = new pg.Client({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: parseInt(process.env.DB_PORT!),
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL || 
+      `postgresql://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
+    ssl: process.env.NODE_ENV === 'production' || process.env.DB_HOST?.includes('render.com') 
+      ? { rejectUnauthorized: false } 
+      : false,
   });
 
+  const client = await pool.connect();
+
   try {
-    await client.connect();
-    console.log('Connected to database for auth schema creation');
+    console.log('Connected to Render database for auth schema creation');
+
+    // Enable UUID extension
+    await client.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
+    console.log('✅ UUID extension enabled');
 
     // Drop existing tables if they exist (to start fresh)
     await client.query('DROP TABLE IF EXISTS role_permissions CASCADE');
@@ -50,9 +58,11 @@ async function createAuthTables() {
     // Create role_permissions junction table
     await client.query(`
       CREATE TABLE IF NOT EXISTS role_permissions (
-        "roleId" UUID REFERENCES roles(id) ON DELETE CASCADE,
-        "permissionId" UUID REFERENCES permissions(id) ON DELETE CASCADE,
-        PRIMARY KEY ("roleId", "permissionId")
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        "roleId" UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+        "permissionId" UUID NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+        "createdAt" TIMESTAMP DEFAULT NOW(),
+        UNIQUE("roleId", "permissionId")
       )
     `);
     console.log('✅ Role permissions junction table created');
@@ -65,113 +75,110 @@ async function createAuthTables() {
         password VARCHAR(255) NOT NULL,
         "firstName" VARCHAR(100),
         "lastName" VARCHAR(100),
-        "phoneNumber" VARCHAR(50),
-        status VARCHAR(20) DEFAULT 'inactive' CHECK (status IN ('active', 'inactive')),
         "roleId" UUID REFERENCES roles(id) ON DELETE SET NULL,
-        "twoFactorEnabled" BOOLEAN DEFAULT false,
-        "twoFactorSecret" VARCHAR(255),
+        "accountStatus" VARCHAR(20) DEFAULT 'pending' CHECK ("accountStatus" IN ('active', 'inactive', 'pending', 'suspended')),
         "lastLogin" TIMESTAMP,
-        "resetPasswordToken" VARCHAR(255),
-        "resetPasswordExpires" TIMESTAMP,
+        "twoFactorEnabled" BOOLEAN DEFAULT FALSE,
+        "twoFactorSecret" VARCHAR(255),
         "invitationToken" VARCHAR(255),
         "invitationExpires" TIMESTAMP,
+        "invitedBy" UUID REFERENCES users(id) ON DELETE SET NULL,
+        "invitedAt" TIMESTAMP,
+        "activatedAt" TIMESTAMP,
         "createdAt" TIMESTAMP DEFAULT NOW(),
         "updatedAt" TIMESTAMP DEFAULT NOW()
       )
     `);
     console.log('✅ Users table created');
 
-    // Create indexes for performance
-    await client.query(`
-      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-      CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
-      CREATE INDEX IF NOT EXISTS idx_users_role_id ON users("roleId");
-      CREATE INDEX IF NOT EXISTS idx_roles_name ON roles(name);
-      CREATE INDEX IF NOT EXISTS idx_permissions_name ON permissions(name);
-      CREATE INDEX IF NOT EXISTS idx_role_permissions_role_id ON role_permissions("roleId");
-      CREATE INDEX IF NOT EXISTS idx_role_permissions_permission_id ON role_permissions("permissionId");
-    `);
-    console.log('✅ Database indexes created');
-
-    // Insert default permissions
-    const defaultPermissions = [
-      'CREATE_USER', 'READ_USER', 'UPDATE_USER', 'DELETE_USER', 'INVITE_USER',
-      'CREATE_PROJECT', 'READ_PROJECT', 'UPDATE_PROJECT', 'DELETE_PROJECT',
-      'CREATE_DRILLING', 'READ_DRILLING', 'UPDATE_DRILLING', 'DELETE_DRILLING',
-      'ADD_DATASET', 'ADD_ENTRY', 'EDIT_DATASET', 'DELETE_DATASET',
-      'MANAGE_ROLES', 'SYSTEM_SETTINGS'
+    // Insert permissions
+    const permissions = [
+      { name: 'user.create', description: 'Create new users' },
+      { name: 'user.read', description: 'View user information' },
+      { name: 'user.update', description: 'Update user information' },
+      { name: 'user.delete', description: 'Delete users' },
+      { name: 'user.invite', description: 'Invite new users' },
+      { name: 'user.manage_roles', description: 'Manage user roles' },
+      { name: 'project.create', description: 'Create new projects' },
+      { name: 'project.read', description: 'View project information' },
+      { name: 'project.update', description: 'Update project information' },
+      { name: 'project.delete', description: 'Delete projects' },
+      { name: 'drilling.create', description: 'Create drilling records' },
+      { name: 'drilling.read', description: 'View drilling records' },
+      { name: 'drilling.update', description: 'Update drilling records' },
+      { name: 'drilling.delete', description: 'Delete drilling records' },
+      { name: 'role.create', description: 'Create new roles' },
+      { name: 'role.read', description: 'View role information' },
+      { name: 'role.update', description: 'Update role information' },
+      { name: 'role.delete', description: 'Delete roles' },
     ];
 
-    for (const permission of defaultPermissions) {
+    for (const permission of permissions) {
       await client.query(`
-        INSERT INTO permissions (name, description)
+        INSERT INTO permissions (name, description) 
         VALUES ($1, $2)
         ON CONFLICT (name) DO NOTHING
-      `, [permission, `Permission to ${permission.toLowerCase().replace('_', ' ')}`]);
+      `, [permission.name, permission.description]);
     }
-    console.log('✅ Default permissions created');
+    console.log('✅ Permissions inserted');
 
-    // Insert default roles
-    const defaultRoles = [
+    // Insert roles with their permission assignments
+    const roles = [
       {
         name: 'super_admin',
-        description: 'Super Administrator with all permissions',
+        description: 'Super administrator with all permissions',
         permissions: [
-          'CREATE_USER', 'READ_USER', 'UPDATE_USER', 'DELETE_USER', 'INVITE_USER',
-          'CREATE_PROJECT', 'READ_PROJECT', 'UPDATE_PROJECT', 'DELETE_PROJECT',
-          'CREATE_DRILLING', 'READ_DRILLING', 'UPDATE_DRILLING', 'DELETE_DRILLING',
-          'ADD_DATASET', 'ADD_ENTRY', 'EDIT_DATASET', 'DELETE_DATASET',
-          'MANAGE_ROLES', 'SYSTEM_SETTINGS'
+          'user.create', 'user.read', 'user.update', 'user.delete', 'user.invite', 'user.manage_roles',
+          'project.create', 'project.read', 'project.update', 'project.delete',
+          'drilling.create', 'drilling.read', 'drilling.update', 'drilling.delete',
+          'role.create', 'role.read', 'role.update', 'role.delete'
         ]
       },
       {
         name: 'admin',
-        description: 'Administrator with management permissions',
+        description: 'Administrator with most permissions',
         permissions: [
-          'CREATE_USER', 'READ_USER', 'UPDATE_USER', 'INVITE_USER',
-          'CREATE_PROJECT', 'READ_PROJECT', 'UPDATE_PROJECT', 'DELETE_PROJECT',
-          'CREATE_DRILLING', 'READ_DRILLING', 'UPDATE_DRILLING', 'DELETE_DRILLING',
-          'ADD_DATASET', 'ADD_ENTRY', 'EDIT_DATASET', 'DELETE_DATASET'
+          'user.create', 'user.read', 'user.update', 'user.invite',
+          'project.create', 'project.read', 'project.update', 'project.delete',
+          'drilling.create', 'drilling.read', 'drilling.update', 'drilling.delete',
+          'role.read'
         ]
       },
       {
-        name: 'geologist',
-        description: 'Geologist with project and drilling management',
+        name: 'manager',
+        description: 'Project manager with project and drilling permissions',
         permissions: [
-          'READ_USER', 'READ_PROJECT', 'UPDATE_PROJECT',
-          'CREATE_DRILLING', 'READ_DRILLING', 'UPDATE_DRILLING',
-          'ADD_DATASET', 'ADD_ENTRY', 'EDIT_DATASET'
+          'user.read', 'project.create', 'project.read', 'project.update',
+          'drilling.create', 'drilling.read', 'drilling.update', 'drilling.delete'
         ]
       },
       {
         name: 'driller',
-        description: 'Driller with drilling operations access',
+        description: 'Driller with drilling permissions',
         permissions: [
-          'READ_USER', 'READ_PROJECT', 'READ_DRILLING', 'UPDATE_DRILLING',
-          'ADD_DATASET', 'ADD_ENTRY'
+          'project.read', 'drilling.create', 'drilling.read', 'drilling.update'
         ]
       },
       {
         name: 'junior_driller',
-        description: 'Junior Driller with basic access',
+        description: 'Junior driller with read permissions',
         permissions: [
-          'READ_USER', 'READ_PROJECT', 'READ_DRILLING', 'ADD_ENTRY'
+          'project.read', 'drilling.read'
         ]
       }
     ];
 
-    for (const role of defaultRoles) {
+    for (const role of roles) {
       // Insert role
       const roleResult = await client.query(`
-        INSERT INTO roles (name, description)
+        INSERT INTO roles (name, description) 
         VALUES ($1, $2)
-        ON CONFLICT (name) DO UPDATE SET
-          description = EXCLUDED.description,
-          "updatedAt" = NOW()
+        ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description
         RETURNING id
       `, [role.name, role.description]);
       
       const roleId = roleResult.rows[0].id;
+      console.log(`✅ Role '${role.name}' created/updated`);
 
       // Clear existing permissions for this role
       await client.query('DELETE FROM role_permissions WHERE "roleId" = $1', [roleId]);
@@ -182,40 +189,43 @@ async function createAuthTables() {
         if (permissionResult.rows.length > 0) {
           const permissionId = permissionResult.rows[0].id;
           await client.query(`
-            INSERT INTO role_permissions ("roleId", "permissionId")
+            INSERT INTO role_permissions ("roleId", "permissionId") 
             VALUES ($1, $2)
-            ON CONFLICT DO NOTHING
+            ON CONFLICT ("roleId", "permissionId") DO NOTHING
           `, [roleId, permissionId]);
         }
       }
+      console.log(`✅ Permissions assigned to role '${role.name}'`);
     }
-    console.log('✅ Default roles and permissions assigned');
 
-    // Create default super admin user (password: passworD12345#)
-    const bcrypt = require('bcrypt');
-    const hashedPassword = await bcrypt.hash('passworD12345#', 12);
+    // Create default super admin user
+    const hashedPassword = await bcrypt.hash(process.env.DEFAULT_ADMIN_PASSWORD || 'passworD12345#', 12);
     
     // Get super_admin role ID
-    const roleResult = await client.query('SELECT id FROM roles WHERE name = $1', ['super_admin']);
-    const superAdminRoleId = roleResult.rows[0].id;
-
+    const superAdminResult = await client.query('SELECT id FROM roles WHERE name = $1', ['super_admin']);
+    const superAdminRoleId = superAdminResult.rows[0].id;
+    
+    // Insert or update super admin user
     await client.query(`
-      INSERT INTO users (email, password, "firstName", "lastName", "roleId", status)
+      INSERT INTO users (email, password, "firstName", "lastName", "roleId", "accountStatus")
       VALUES ($1, $2, $3, $4, $5, $6)
-      ON CONFLICT (email) DO UPDATE SET
+      ON CONFLICT (email) DO UPDATE SET 
         password = EXCLUDED.password,
+        "firstName" = EXCLUDED."firstName",
+        "lastName" = EXCLUDED."lastName",
         "roleId" = EXCLUDED."roleId",
-        "updatedAt" = NOW()
+        "accountStatus" = EXCLUDED."accountStatus"
     `, ['imeekwere15@gmail.com', hashedPassword, 'Ime', 'Ekwere', superAdminRoleId, 'active']);
     
     console.log('✅ Default super admin user created (imeekwere15@gmail.com / passworD12345#)');
-    console.log('🎉 Authentication schema setup completed successfully');
+    console.log('🎉 Authentication schema setup completed successfully on Render database');
 
   } catch (error) {
     console.error('❌ Auth schema setup failed:', error);
     throw error;
   } finally {
-    await client.end();
+    client.release(); // Return the client to the pool
+    await pool.end(); // Close the pool
   }
 }
 
