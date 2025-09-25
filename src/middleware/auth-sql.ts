@@ -3,27 +3,51 @@ import passport from './passport';
 import { PermissionService } from '../services/permission-sql.service';
 import { AccountStatus } from '../entities';
 
-// Permission enum (matching our database permissions)
+// Permission enum (matching DMP database permissions)
 export enum Permission {
-  CREATE_USER = 'CREATE_USER',
-  READ_USER = 'READ_USER',
-  UPDATE_USER = 'UPDATE_USER',
-  DELETE_USER = 'DELETE_USER',
-  INVITE_USER = 'INVITE_USER',
-  CREATE_PROJECT = 'CREATE_PROJECT',
-  READ_PROJECT = 'READ_PROJECT',
-  UPDATE_PROJECT = 'UPDATE_PROJECT',
-  DELETE_PROJECT = 'DELETE_PROJECT',
-  CREATE_DRILLING = 'CREATE_DRILLING',
-  READ_DRILLING = 'READ_DRILLING',
-  UPDATE_DRILLING = 'UPDATE_DRILLING',
-  DELETE_DRILLING = 'DELETE_DRILLING',
-  ADD_DATASET = 'ADD_DATASET',
-  ADD_ENTRY = 'ADD_ENTRY',
-  EDIT_DATASET = 'EDIT_DATASET',
-  DELETE_DATASET = 'DELETE_DATASET',
-  MANAGE_ROLES = 'MANAGE_ROLES',
-  SYSTEM_SETTINGS = 'SYSTEM_SETTINGS'
+  // System Management (Super Admin only)
+  SYSTEM_MANAGE_USERS = 'system.manage_users',
+  SYSTEM_SCHEMA_CHANGES = 'system.schema_changes',
+  SYSTEM_INTEGRATIONS = 'system.integrations',
+  SYSTEM_AUDIT_LOGS = 'system.audit_logs',
+  SYSTEM_OVERRIDE_CHANGES = 'system.override_changes',
+  
+  // Project Management
+  PROJECT_CREATE = 'project.create',
+  PROJECT_ARCHIVE = 'project.archive',
+  PROJECT_READ = 'project.read',
+  PROJECT_ASSIGN_PERMISSIONS = 'project.assign_permissions',
+  
+  // Drilling Operations & Logs
+  DRILLING_APPROVE_LOGS = 'drilling.approve_logs',
+  DRILLING_APPROVE_MODELS = 'drilling.approve_models',
+  DRILLING_REVIEW_PROGRESS = 'drilling.review_progress',
+  DRILLING_APPROVE_ADJUSTMENTS = 'drilling.approve_adjustments',
+  DRILLING_VALIDATE_DATA = 'drilling.validate_data',
+  DRILLING_INPUT_LOGS = 'drilling.input_logs',
+  DRILLING_UPLOAD_PHOTOS = 'drilling.upload_photos',
+  DRILLING_ENTER_ASSAYS = 'drilling.enter_assays',
+  DRILLING_UPDATE_GEOLOGY = 'drilling.update_geology',
+  DRILLING_INPUT_PROGRESS = 'drilling.input_progress',
+  DRILLING_TRACK_SAMPLES = 'drilling.track_samples',
+  DRILLING_UPLOAD_NOTES = 'drilling.upload_notes',
+  DRILLING_READ = 'drilling.read',
+  
+  // Reporting & Analytics
+  REPORTS_RUN_EXPORT = 'reports.run_export',
+  REPORTS_CONFIGURE_DASHBOARDS = 'reports.configure_dashboards',
+  REPORTS_RUN_VISUALIZATIONS = 'reports.run_visualizations',
+  REPORTS_VIEW_DASHBOARDS = 'reports.view_dashboards',
+  REPORTS_VIEW_ESG_METRICS = 'reports.view_esg_metrics',
+  
+  // Data Integrity
+  DATA_DELETE_HISTORICAL = 'data.delete_historical',
+  DATA_LOCK_VALIDATED = 'data.lock_validated',
+  DATA_REQUIRE_APPROVAL = 'data.require_approval',
+  
+  // Site Access
+  ACCESS_ALL_PROJECTS = 'access.all_projects',
+  ACCESS_ASSIGNED_PROJECTS = 'access.assigned_projects'
 }
 
 // User interface for SQL results

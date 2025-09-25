@@ -26,7 +26,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
       roleId?: string;
     };
   }>('/invite', {
-    preHandler: [authenticate, requirePermission(Permission.INVITE_USER)]
+    preHandler: [authenticate, requirePermission(Permission.SYSTEM_MANAGE_USERS)]
   }, async (request, reply) => {
     try {
       const { email, firstName, lastName, roleId } = request.body;
@@ -173,7 +173,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
       userId: string;
     };
   }>('/resend', {
-    preHandler: [authenticate, requirePermission(Permission.INVITE_USER)]
+    preHandler: [authenticate, requirePermission(Permission.SYSTEM_MANAGE_USERS)]
   }, async (request, reply) => {
     try {
       const { userId } = request.body;

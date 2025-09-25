@@ -19,14 +19,13 @@ export async function userRoutes(fastify: FastifyInstance) {
       page?: string;
       limit?: string;
       roleId?: string;
-      isActive?: string;
-      search?: string;
+      status?: string;
     };
   }>('/', {
-    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.READ_USER)]
+    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.SYSTEM_MANAGE_USERS)]
   }, async (request, reply) => {
     try {
-      const { page = '1', limit = '10', roleId, isActive, search } = request.query;
+      const { page = '1', limit = '10', roleId, status } = request.query;
 
       // Parse and validate query parameters
       const pageNum = parseInt(page, 10);
@@ -54,12 +53,8 @@ export async function userRoutes(fastify: FastifyInstance) {
         queryOptions.roleId = roleId;
       }
 
-      if (isActive !== undefined) {
-        queryOptions.isActive = isActive === 'true';
-      }
-
-      if (search) {
-        queryOptions.search = search.trim();
+      if (status) {
+        queryOptions.status = status;
       }
 
       // Get users with pagination
@@ -111,7 +106,7 @@ export async function userRoutes(fastify: FastifyInstance) {
       id: string;
     };
   }>('/:id', {
-    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.READ_USER)]
+    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.SYSTEM_MANAGE_USERS)]
   }, async (request, reply) => {
     try {
       const { id } = request.params;
@@ -178,7 +173,7 @@ export async function userRoutes(fastify: FastifyInstance) {
       twoFactorEnabled?: boolean;
     };
   }>('/:id', {
-    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.UPDATE_USER)]
+    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.SYSTEM_MANAGE_USERS)]
   }, async (request, reply) => {
     try {
       const { id } = request.params;
@@ -259,7 +254,7 @@ export async function userRoutes(fastify: FastifyInstance) {
       id: string;
     };
   }>('/:id', {
-    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.DELETE_USER)]
+    preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.SYSTEM_MANAGE_USERS)]
   }, async (request, reply) => {
     try {
       const { id } = request.params;
