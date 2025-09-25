@@ -1,0 +1,41 @@
+name: Setup Repository Labels
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, develop ]
+    paths: [ '.github/workflows/**' ]
+
+jobs:
+  create-labels:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Create deployment labels
+      run: |
+        echo "🏷️ Creating repository labels for workflows..."
+        
+        # Create labels with colors (ignore errors if they already exist)
+        gh label create "auto-deployment" --description "Automatically created deployment PR" --color "1f77b4" || echo "Label auto-deployment already exists"
+        gh label create "staging" --description "Staging environment deployment" --color "ff7f0e" || echo "Label staging already exists"
+        gh label create "production" --description "Production environment deployment" --color "d62728" || echo "Label production already exists"
+        gh label create "ci/cd" --description "Continuous integration and deployment" --color "2ca02c" || echo "Label ci/cd already exists"
+        gh label create "workflow" --description "GitHub Actions workflow related" --color "9467bd" || echo "Label workflow already exists"
+        
+        echo "✅ Repository labels created/verified!"
+        
+        # List all labels to confirm
+        echo "📋 Current repository labels:"
+        gh label list
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Summary
+      run: |
+        echo "## 🏷️ Repository Setup Complete" >> $GITHUB_STEP_SUMMARY
+        echo "- Created deployment workflow labels" >> $GITHUB_STEP_SUMMARY
+        echo "- Labels: auto-deployment, staging, production, ci/cd, workflow" >> $GITHUB_STEP_SUMMARY
+        echo "- Workflows can now use labels without errors" >> $GITHUB_STEP_SUMMARY

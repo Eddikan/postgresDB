@@ -106,8 +106,12 @@ jobs:
           --head develop \
           --title "$PR_TITLE" \
           --body "$PR_BODY" \
-          --label "auto-deployment,staging" \
           --assignee "${{ github.actor }}"
+        
+        # Try to add labels (ignore errors if labels don't exist)
+        PR_NUMBER=$(gh pr list --base staging --head develop --json number --jq '.[0].number')
+        gh pr edit $PR_NUMBER --add-label "auto-deployment" || echo "Label auto-deployment not found (will be created by setup-labels workflow)"
+        gh pr edit $PR_NUMBER --add-label "staging" || echo "Label staging not found (will be created by setup-labels workflow)"
         
         echo "✅ Pull Request created successfully!"
       env:
