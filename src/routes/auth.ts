@@ -37,15 +37,38 @@ export async function authRoutes(fastify: FastifyInstance) {
       // Get user with role and permissions using UserDao
       const user = await userDao.getUserByEmail(email);
       if (!user) {
-        return reply.code(401).send({ error: 'Invalid credentials' });
+        return reply.code(401).send({ error: 'Email not found' });
       }
 
-      // Check password (user.passwordHash contains the hash from database)
-      const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+      // Check password
+      const isValidPassword = await bcrypt.compare(password, user.password);
       if (!isValidPassword) {
-        return reply.code(401).send({ error: 'Invalid credentials' });
+        return reply.code(401).send({ error: 'Incorrect password' });
       }
-
+      // Check if password has been changed and account is inactive
+      if (!user.has_changed_default_password && user.accountStatus === AccountStatus.INACTIVE) {
+        const userResponse = {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          accountStatus: user.accountStatus,
+          twoFactorEnabled: user.twoFactorEnabled,
+          lastLogin: user.lastLogin,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+          has_changed_default_password: user.has_changed_default_password,
+          role: user.roleId ? {
+            id: user.roleId,
+            name: user.roleName,
+            permissions: user.rolePermissions?.filter((p: any) => p !== null) || []
+          } : null
+        };
+        return reply.code(403).send({
+          error: 'Default password has not been changed so account is inactive.',
+          user: userResponse
+        });
+      }
       // Check if user is active
       if (user.accountStatus !== AccountStatus.ACTIVE) {
         return reply.code(403).send({ error: 'Account is inactive' });
@@ -116,7 +139,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       // Create user data
       const userData: CreateUserData = {
         email,
-        passwordHash,
+        password: passwordHash,
         accountStatus: AccountStatus.PENDING,
         twoFactorEnabled: false
       };

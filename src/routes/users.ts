@@ -10,6 +10,62 @@ export async function userRoutes(fastify: FastifyInstance) {
   const database = new DatabaseConnection();
   const userDao = new UserDao(database);
 
+    /**
+     * POST /users
+     * Create a new user
+     */
+    fastify.post<{
+      Body: {
+        email: string;
+        password: string;
+        firstName: string;
+        lastName: string;
+        roleId?: string;
+      };
+    }>(
+      '/',
+      {
+        preHandler: [authenticate, requireActiveAccount, requirePermission(Permission.SYSTEM_MANAGE_USERS)]
+      },
+      async (request, reply) => {
+        const { email, password, firstName, lastName, roleId } = request.body;
+        // Validate required fields
+        if (!email || !password || !firstName || !lastName) {
+          return reply.status(400).send({ error: 'Missing required fields' });
+        }
+
+        // Check for duplicate email
+        const emailExists = await userDao.emailExists(email);
+        if (emailExists) {
+          return reply.status(409).send({ error: 'Email already in use' });
+        }
+
+        // Hash password
+        const bcrypt = await import('bcrypt');
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        try {
+          const user = await userDao.createUser({
+            email,
+            password: hashedPassword,
+            firstName,
+            lastName,
+            roleId,
+            accountStatus: AccountStatus.ACTIVE,
+          });
+          // Remove sensitive info
+          delete (user as any).password;
+          delete (user as any).twoFactorSecret;
+          return reply.status(201).send({
+            message: 'User created successfully',
+            user
+          });
+        } catch (err: any) {
+          fastify.log.error('Error creating user:', err);
+          return reply.status(500).send({ error: err.message });
+        }
+      }
+    );
   /**
    * GET /users
    * Get all users with pagination and filtering

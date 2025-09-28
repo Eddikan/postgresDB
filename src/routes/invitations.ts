@@ -30,7 +30,6 @@ export async function invitationRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const { email, firstName, lastName, roleId } = request.body;
-
       // Validate required fields
       if (!email || !firstName || !lastName) {
         return reply.status(400).send({
@@ -56,12 +55,11 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         email,
         firstName,
         lastName,
-        passwordHash,
+        password:passwordHash,
         accountStatus: AccountStatus.INACTIVE,
         roleId,
         twoFactorEnabled: false
       };
-
       const newUser = await userDao.createUser(userData);
 
       // Update user with invitation token
@@ -146,7 +144,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
 
       // Update user: activate account, set new password, clear invitation token
       await userDao.updateUser(user.id, {
-        passwordHash,
+        password:passwordHash,
         accountStatus: AccountStatus.ACTIVE,
         invitationToken: null,
         invitationExpires: null
@@ -206,7 +204,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
 
       // Update user with new credentials and token
       await userDao.updateUser(user.id, {
-        passwordHash,
+        password:passwordHash,
         invitationToken,
         invitationExpires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
       });

@@ -24,7 +24,7 @@ export class UserDao extends BaseDao {
   async getUserById(id: string): Promise<UserWithRole | null> {
     const query = `
       SELECT 
-        u.id, u.email, u."firstName", u."lastName", u.password as "passwordHash", u."accountStatus",
+        u.id, u.email, u."firstName", u."lastName", u.password, u."accountStatus",
         u."twoFactorEnabled", u."twoFactorSecret", u."lastLogin",
         u."invitationToken", u."invitationExpires", u."invitedBy", u."invitedAt", u."activatedAt",
         u."createdAt", u."updatedAt", u."roleId",
@@ -50,10 +50,10 @@ export class UserDao extends BaseDao {
   async getUserByEmail(email: string): Promise<UserWithRole | null> {
     const query = `
       SELECT 
-        u.id, u.email, u."firstName", u."lastName", u.password as "passwordHash", u."accountStatus",
+        u.id, u.email, u."firstName", u."lastName", u.password , u."accountStatus",
         u."twoFactorEnabled", u."twoFactorSecret", u."lastLogin",
         u."invitationToken", u."invitationExpires", u."invitedBy", u."invitedAt", u."activatedAt",
-        u."createdAt", u."updatedAt", u."roleId",
+        u."createdAt", u."updatedAt", u."roleId", u."has_changed_default_password",
         r.name as "roleName",
         array_agg(p.name) FILTER (WHERE p.name IS NOT NULL) as "rolePermissions"
       FROM users u
@@ -63,7 +63,6 @@ export class UserDao extends BaseDao {
       WHERE u.email = $1
       GROUP BY u.id, r.name
     `;
-    
     const result = await this.query<UserWithRole>(query, [email]);
     return result.rows[0] || null;
   }
@@ -90,16 +89,24 @@ export class UserDao extends BaseDao {
    * @returns Created user
    */
   async createUser(userData: CreateUserData): Promise<User> {
-    const { columns, values, params } = this.buildInsertClause(userData);
-    
-    const query = `
-      INSERT INTO users (${columns})
-      VALUES (${values})
-      RETURNING *
-    `;
-    
-    const result = await this.query<User>(query, params);
-    return result.rows[0];
+      // If roleId is provided, check if it exists
+      if (userData.roleId) {
+        const roleCheck = await this.query<{ id: string }>(
+          'SELECT id FROM roles WHERE id = $1',
+          [userData.roleId]
+        );
+        if (roleCheck.rows.length === 0) {
+          throw new Error('Role does not exist: ' + userData.roleId);
+        }
+      }
+      const { columns, values, params } = this.buildInsertClause(userData);
+      const query = `
+        INSERT INTO users (${columns})
+        VALUES (${values})
+        RETURNING *
+      `;
+      const result = await this.query<User>(query, params);
+      return result.rows[0];
   }
 
   /**
