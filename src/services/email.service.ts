@@ -1,6 +1,81 @@
 import * as nodemailer from 'nodemailer';
 import { config } from '../config';
+import Nodemailer from "nodemailer";
+import { MailtrapTransport,MailtrapClient } from "mailtrap";
+import { MailtrapResponse } from 'mailtrap/dist/types/transport';
 
+/**
+ * User invitation routes
+ */
+const TOKEN = "f55e73b0e5f233667ec4e8ab6a1d6545"; // your Mailtrap API token
+
+const client = new MailtrapClient({ token:TOKEN });
+
+async function sendWelcomeTemplateEmail({to}:{to:string}) {
+  try {
+    const response = await client.send({
+      from: { email: "hello@ime.com.ng", name: "Mailtrap Test" },
+      to: [{ email: to }],
+      template_uuid: "bd3a5ff8-e72c-4557-9862-1328c4f6d3f1",
+      template_variables: {
+        user_name: "Test_User_name",
+        next_step_link: "Test_Next_step_link",
+        get_started_link: "Test_Get_started_link",
+        onboarding_video_link: "Test_Onboarding_video_link",
+      },
+    });
+    console.log("Email sent successfully:", response);
+    return response
+  } catch (error) {
+    console.error("Error sending email:", error);
+  }
+}
+
+async function SendEmail({ to, subject, text, html }: { to: string, subject: string, text: string, html?: string }) {
+  // Use MailtrapClient for template-based sending if template_uuid and template_variables are provided
+  const { MailtrapClient } = require("mailtrap");
+  const client = new MailtrapClient({ token: TOKEN });
+  const sender = {
+    email: "hello@ime.com.ng",
+    name: "Mailtrap Test"
+  };
+  // If template_uuid and template_variables are present, use MailtrapClient
+  if (arguments[0].template_uuid && arguments[0].template_variables) {
+    try {
+      const response = await client.send({
+        from: sender,
+        to: [{ email: to }],
+        template_uuid: arguments[0].template_uuid,
+        template_variables: arguments[0].template_variables
+      });
+      console.log("Email sent successfully:", response);
+      return response;
+    } catch (error) {
+      console.error("Error sending template email:", error);
+    }
+  } else {
+    // Fallback to nodemailer for regular emails
+    const transport = Nodemailer.createTransport(
+      MailtrapTransport({
+        token: TOKEN,
+      })
+    );
+    try {
+      const result = await transport.sendMail({
+        from: { address: sender.email, name: sender.name },
+        to,
+        subject,
+        text,
+        html: html || text,
+        category: "Integration Test",
+      });
+      console.log("Email sent successfully:", result);
+      return result;
+    } catch (error) {
+      console.error("Error sending email:", error);
+    }
+  }
+}
 export class EmailService {
   private static transporter: nodemailer.Transporter;
 
@@ -9,15 +84,34 @@ export class EmailService {
    * Note: Configure your SMTP settings in environment variables
    */
   static initializeTransporter(): void {
-    this.transporter = nodemailer.createTransport({
-      host: config.SMTP_HOST,
-      port: config.SMTP_PORT,
-      secure: config.SMTP_PORT === 465, // true for 465, false for other ports
-      auth: {
-        user: config.SMTP_USER,
-        pass: config.SMTP_PASS,
-      },
-    });
+    // Use Mailtrap for development/testing
+    if (config.NODE_ENV === 'development' || config.NODE_ENV === 'test') {
+      this.transporter = nodemailer.createTransport(
+        MailtrapTransport({
+          token: 'f55e73b0e5f233667ec4e8ab6a1d6545',
+        })
+      );
+    } else {
+      this.transporter = nodemailer.createTransport({
+        host: config.SMTP_HOST,
+        port: config.SMTP_PORT,
+        secure: config.SMTP_PORT === 465, // true for 465, false for other ports
+        auth: {
+          user: config.SMTP_USER,
+          pass: config.SMTP_PASS,
+        },
+      });
+    }
+  }
+  /**
+   * Send a sample email to the Super Admin using Mailtrap
+   */
+  static async sendSampleEmailToSuperAdmin(): Promise<boolean> {
+    const to = config.DEFAULT_ADMIN_EMAIL;
+    const subject = 'Mailtrap Integration Test';
+    const text = 'Congrats! This is a test email sent via Mailtrap integration.';
+    const html = '<h2>Mailtrap Integration Test</h2><p>Congrats! This is a test email sent via <strong>Mailtrap</strong> integration.</p>';
+    return this.sendEmail(to, subject, text, html);
   }
 
   /**
@@ -34,20 +128,26 @@ export class EmailService {
         this.initializeTransporter();
       }
 
+      // Use sender object and recipient format as in send-email.ts
+      const sender = {
+        address: config.FROM_EMAIL || "hello@ime.com.ng",
+        name: "Mailtrap Test"
+      };
+      // Accept both string and array for recipients
+      const recipients = Array.isArray(to) ? to : [to];
       const mailOptions = {
-        from: config.FROM_EMAIL,
-        to,
+        from: sender,
+        to: recipients,
         subject,
         text,
         html: html || text,
+        category: "Integration Test"
       };
 
       // For development - log email content instead of sending
       if (config.NODE_ENV === 'development') {
         console.log('📧 Email would be sent:');
-        console.log(`To: ${to}`);
-        console.log(`Subject: ${subject}`);
-        console.log(`Text: ${text}`);
+        console.log(mailOptions);
         return true;
       }
 
@@ -104,7 +204,7 @@ export class EmailService {
     lastName: string | null,
     temporaryPassword: string,
     invitationToken: string
-  ): Promise<boolean> {
+  ): Promise<MailtrapResponse | undefined> {
     const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'User';
     const activationUrl = `${config.FRONTEND_URL}/activate-account?token=${invitationToken}`;
     
@@ -112,7 +212,7 @@ export class EmailService {
     const text = `
 Hello ${fullName},
 
-You have been invited to join Primefrontier. Your account has been created with the following credentials:
+You have been invited to join Primefrontier. Please reset your password once you're logged in. Your account has been created with the following credentials:
 
 Email: ${email}
 Temporary Password: ${temporaryPassword}
@@ -166,7 +266,11 @@ The Primefrontier Team
       </div>
     `;
 
-    return this.sendEmail(email, subject, text, html);
+  const res = await sendWelcomeTemplateEmail({ to: email,})
+   
+      return res
+      console.log('res', res)
+    // return this.sendEmail(email, subject, text, html);
   }
 
   /**
@@ -240,3 +344,5 @@ The Primefrontier Team
     return this.sendEmail(email, subject, text, html);
   }
 }
+
+// Call the method to send a sample email to the Super Admin
