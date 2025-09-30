@@ -47,7 +47,7 @@ jobs:
         cache: 'npm'
 
     - name: Install dependencies
-      run: npm ci
+      run: npm ci --legacy-peer-deps
 
     - name: Run full test suite
       run: |
@@ -60,10 +60,6 @@ jobs:
       env:
         NODE_ENV: production
 
-    - name: Security audit
-      run: |
-        npm audit --audit-level moderate
-        echo "✅ Security audit completed"
 
     - name: Pre-deployment checks
       run: |

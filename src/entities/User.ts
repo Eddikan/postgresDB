@@ -12,7 +12,7 @@ export interface User {
   email: string;
   firstName?: string;
   lastName?: string;
-  passwordHash: string;
+  password: string;
   accountStatus: AccountStatus;
   roleId?: string;
   twoFactorSecret?: string;
@@ -25,6 +25,7 @@ export interface User {
   lastLogin?: Date;
   createdAt: Date;
   updatedAt: Date;
+  has_changed_default_password: boolean;
 }
 
 // User creation interface (without auto-generated fields)
@@ -32,13 +33,14 @@ export interface CreateUserData {
   email: string;
   firstName?: string;
   lastName?: string;
-  passwordHash: string;
+  password: string;
   accountStatus?: AccountStatus;
   roleId?: string;
   twoFactorEnabled?: boolean;
   invitationToken?: string;
   invitationExpires?: Date;
   invitedBy?: string;
+  has_changed_default_password?: boolean;
 }
 
 // User update interface (all fields optional except id)
@@ -47,7 +49,7 @@ export interface UpdateUserData {
   email?: string;
   firstName?: string;
   lastName?: string;
-  passwordHash?: string;
+  password?: string;
   accountStatus?: AccountStatus;
   roleId?: string;
   twoFactorSecret?: string;
@@ -57,4 +59,5 @@ export interface UpdateUserData {
   invitedBy?: string;
   activatedAt?: Date;
   lastLogin?: Date;
+  has_changed_default_password?: boolean;
 }

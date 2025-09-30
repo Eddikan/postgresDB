@@ -46,14 +46,12 @@ export abstract class BaseDao {
     params: any[];
   } {
     const entries = Object.entries(conditions).filter(([_, value]) => value !== undefined);
-    
     if (entries.length === 0) {
       return { whereClause: '', params: [] };
     }
-
-    const whereParts = entries.map(([key], index) => `${key} = $${index + 1}`);
+    // Wrap column names in double quotes for SQL
+    const whereParts = entries.map(([key], index) => `"${key}" = $${index + 1}`);
     const params = entries.map(([_, value]) => value);
-
     return {
       whereClause: `WHERE ${whereParts.join(' AND ')}`,
       params
@@ -71,14 +69,12 @@ export abstract class BaseDao {
     params: any[];
   } {
     const entries = Object.entries(updates).filter(([_, value]) => value !== undefined);
-    
     if (entries.length === 0) {
       return { setClause: '', params: [] };
     }
-
-    const setParts = entries.map(([key], index) => `${key} = $${startParamIndex + index}`);
+    // Wrap column names in double quotes for SQL
+    const setParts = entries.map(([key], index) => `"${key}" = $${startParamIndex + index}`);
     const params = entries.map(([_, value]) => value);
-
     return {
       setClause: `SET ${setParts.join(', ')}`,
       params
@@ -95,12 +91,12 @@ export abstract class BaseDao {
     values: string;
     params: any[];
   } {
-    const entries = Object.entries(data).filter(([_, value]) => value !== undefined);
-    
-    const columns = entries.map(([key]) => key).join(', ');
-    const values = entries.map((_, index) => `$${index + 1}`).join(', ');
-    const params = entries.map(([_, value]) => value);
+  const entries = Object.entries(data).filter(([_, value]) => value !== undefined);
+  // Wrap column names in double quotes for SQL
+  const columns = entries.map(([key]) => `"${key}"`).join(', ');
+  const values = entries.map((_, index) => `$${index + 1}`).join(', ');
+  const params = entries.map(([_, value]) => value);
 
-    return { columns, values, params };
+  return { columns, values, params };
   }
 }

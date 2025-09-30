@@ -28,7 +28,7 @@ export const config = {
   SMTP_PORT: parseInt(process.env.SMTP_PORT || '587'),
   SMTP_USER: process.env.SMTP_USER || '',
   SMTP_PASS: process.env.SMTP_PASS || '',
-  FROM_EMAIL: process.env.FROM_EMAIL || 'noreply@primefrontier.com',
+  FROM_EMAIL: process.env.FROM_EMAIL || 'hello@ime.com.ng',
 
   // Twilio (SMS)
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID || '',
@@ -41,4 +41,7 @@ export const config = {
 
   // Frontend URL
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+  FRONTEND_LOGIN_URL:"login",
+  MAILTRAP_TOKEN: process.env.MAILTRAP_TOKEN || '',
+
 };
