@@ -140,7 +140,7 @@ export async function profileRoutes(fastify: FastifyInstance) {
       }
 
       // Verify current password
-      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
       if (!isCurrentPasswordValid) {
         return reply.code(400).send({ error: 'Current password is incorrect' });
       }
@@ -150,7 +150,7 @@ export async function profileRoutes(fastify: FastifyInstance) {
 
       // Update password
       await userDao.updateUser(userId, {
-        passwordHash: newPasswordHash
+        password: newPasswordHash
       });
 
       reply.send({
