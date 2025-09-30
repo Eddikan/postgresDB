@@ -22,7 +22,7 @@ src/
   middleware/         # Passport and security middleware
   services/           # Auth, 2FA, mailer, permissions services
 scripts/
-  create-auth-schema.ts # Database schema creation script
+  create-db-schema.ts # Database schema creation script
 ```
 
 ## Setup
