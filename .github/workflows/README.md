@@ -136,7 +136,7 @@ Add Slack/Discord notifications:
 ### Local Testing
 ```bash
 # Test the build process locally
-npm ci
+npm ci --legacy-peer-deps
 npm run build
 npm test
 
