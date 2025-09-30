@@ -122,7 +122,7 @@ jobs:
         npm outdated || true
         
     - name: Check for vulnerabilities
-        run: echo "🔒 Checking for security vulnerabilities..."
+      run: echo "🔒 Checking for security vulnerabilities..."
 
   summary:
     runs-on: ubuntu-latest
