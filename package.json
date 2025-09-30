@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
-    "dev": "nodemon src/server.ts",
+    "dev": "npx nodemon --watch src --exec 'npx ts-node -r tsconfig-paths/register src/server.ts'",
     "start": "node dist/server.js",
     "render:build": "npm ci && npm run build",
     "render:start": "npm run db:migrate && node dist/server.js",
@@ -50,6 +50,7 @@
     "pg": "^8.16.3",
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0",
+    "tsconfig-paths": "^4.2.0",
     "twilio": "^5.10.0",
     "xlsx": "^0.18.5"
   },
