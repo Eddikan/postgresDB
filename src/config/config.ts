@@ -41,4 +41,7 @@ export const config = {
 
   // Frontend URL
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+  FRONTEND_LOGIN_URL:"login",
+  MAILTRAP_TOKEN: process.env.MAILTRAP_TOKEN || '',
+
 };

@@ -1,27 +1,26 @@
 import * as nodemailer from 'nodemailer';
 import { config } from '../config';
 import Nodemailer from "nodemailer";
-import { MailtrapTransport,MailtrapClient } from "mailtrap";
+import { MailtrapTransport, MailtrapClient } from "mailtrap";
 import { MailtrapResponse } from 'mailtrap/dist/types/transport';
 
 /**
  * User invitation routes
  */
-const TOKEN = "f55e73b0e5f233667ec4e8ab6a1d6545"; // your Mailtrap API token
+const TOKEN = config.MAILTRAP_TOKEN;
 
-const client = new MailtrapClient({ token:TOKEN });
+const client = new MailtrapClient({ token: TOKEN });
 
-async function sendWelcomeTemplateEmail({to}:{to:string}) {
+async function sendWelcomeTemplateEmail({ to, firstName, lastName, temporaryPassword, loginUrl }: { to: string, firstName: string, lastName: string, temporaryPassword: string, loginUrl: string }) {
   try {
     const response = await client.send({
       from: { email: "hello@ime.com.ng", name: "Mailtrap Test" },
       to: [{ email: to }],
       template_uuid: "bd3a5ff8-e72c-4557-9862-1328c4f6d3f1",
       template_variables: {
-        user_name: "Test_User_name",
-        next_step_link: "Test_Next_step_link",
-        get_started_link: "Test_Get_started_link",
-        onboarding_video_link: "Test_Onboarding_video_link",
+        email: to,
+        firstName, lastName, temporaryPassword,
+        loginUrl: "Test_Loginurl"
       },
     });
     console.log("Email sent successfully:", response);
@@ -48,7 +47,7 @@ async function SendEmail({ to, subject, text, html }: { to: string, subject: str
         template_uuid: arguments[0].template_uuid,
         template_variables: arguments[0].template_variables
       });
-      console.log("Email sent successfully:", response);
+      console.log("Email sent successfully here:", response);
       return response;
     } catch (error) {
       console.error("Error sending template email:", error);
@@ -88,7 +87,7 @@ export class EmailService {
     if (config.NODE_ENV === 'development' || config.NODE_ENV === 'test') {
       this.transporter = nodemailer.createTransport(
         MailtrapTransport({
-          token: 'f55e73b0e5f233667ec4e8ab6a1d6545',
+          token: config.MAILTRAP_TOKEN,
         })
       );
     } else {
@@ -111,7 +110,8 @@ export class EmailService {
     const subject = 'Mailtrap Integration Test';
     const text = 'Congrats! This is a test email sent via Mailtrap integration.';
     const html = '<h2>Mailtrap Integration Test</h2><p>Congrats! This is a test email sent via <strong>Mailtrap</strong> integration.</p>';
-    return this.sendEmail(to, subject, text, html);
+    return SendEmail({ to, subject, text, html });
+    // return this.sendEmail(to, subject, text, html);
   }
 
   /**
@@ -169,20 +169,20 @@ export class EmailService {
     const numbers = '0123456789';
     const symbols = '!@#$%^&*';
     const allChars = lowercase + uppercase + numbers + symbols;
-    
+
     let password = '';
-    
+
     // Ensure at least one character from each category
     password += lowercase[Math.floor(Math.random() * lowercase.length)];
     password += uppercase[Math.floor(Math.random() * uppercase.length)];
     password += numbers[Math.floor(Math.random() * numbers.length)];
     password += symbols[Math.floor(Math.random() * symbols.length)];
-    
+
     // Fill the rest randomly
     for (let i = 4; i < length; i++) {
       password += allChars[Math.floor(Math.random() * allChars.length)];
     }
-    
+
     // Shuffle the password
     return password.split('').sort(() => Math.random() - 0.5).join('');
   }
@@ -200,14 +200,15 @@ export class EmailService {
    */
   static async sendUserInvitationEmail(
     email: string,
-    firstName: string | null,
-    lastName: string | null,
+    firstName: string,
+    lastName: string,
     temporaryPassword: string,
-    invitationToken: string
+    invitationToken: string,
+    loginUrl: string
   ): Promise<MailtrapResponse | undefined> {
     const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'User';
     const activationUrl = `${config.FRONTEND_URL}/activate-account?token=${invitationToken}`;
-    
+
     const subject = 'Welcome to Primefrontier - Activate Your Account';
     const text = `
 Hello ${fullName},
@@ -266,10 +267,10 @@ The Primefrontier Team
       </div>
     `;
 
-  const res = await sendWelcomeTemplateEmail({ to: email,})
-   
-      return res
-      console.log('res', res)
+    const res = await sendWelcomeTemplateEmail({ to: email, firstName, lastName, temporaryPassword, loginUrl })
+
+    return res
+    console.log('res', res)
     // return this.sendEmail(email, subject, text, html);
   }
 
