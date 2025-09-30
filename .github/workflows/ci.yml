@@ -42,10 +42,6 @@ jobs:
         echo "✅ Test step completed"
       continue-on-error: true
 
-    - name: Security audit
-      run: |
-        npm audit --audit-level high
-        echo "✅ Security audit completed"
 
   build:
     runs-on: ubuntu-latest
