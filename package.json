@@ -7,7 +7,7 @@
     "build": "tsc",
     "dev": "npx nodemon --watch src --exec 'npx ts-node -r tsconfig-paths/register src/server.ts'",
     "start": "node dist/server.js",
-    "render:build": "npm ci && npm run build",
+    "render:build": "npm ci --legacy-peer-deps && npm run build",
     "render:start": "npm run db:migrate && node dist/server.js",
     "db:create": "ts-node scripts/create-auth-schema.ts",
     "db:seed": "ts-node scripts/seed-database.ts",
