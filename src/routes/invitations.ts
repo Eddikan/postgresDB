@@ -5,7 +5,7 @@ import { DatabaseConnection } from '../datasource';
 import { EmailService } from '../services';
 import { authenticate, requirePermission, Permission } from '../middleware';
 import { CreateUserData, AccountStatus } from '../entities';
-import { config } from '@/config/config';
+import { config } from '../config/config';
 
 /**
  * User invitation routes
