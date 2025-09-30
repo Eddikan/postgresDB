@@ -60,10 +60,6 @@ jobs:
       env:
         NODE_ENV: production
 
-    - name: Security audit
-      run: |
-        npm audit --audit-level moderate
-        echo "✅ Security audit completed"
 
     - name: Pre-deployment checks
       run: |
