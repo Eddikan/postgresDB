@@ -104,6 +104,18 @@ async function createAuthTables() {
     console.log('✅ Role permissions junction table created');
 
     // Create users table
+    // Create mining_samples table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS mining_samples (
+        id SERIAL PRIMARY KEY,
+        sample_id TEXT,
+        depth_m NUMERIC,
+        latitude NUMERIC,
+        longitude NUMERIC,
+        meta JSONB
+      )
+    `);
+    console.log('✅ Mining samples table created');
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
