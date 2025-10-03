@@ -25,9 +25,9 @@ export class UserDao extends BaseDao {
     const query = `
       SELECT 
         u.id, u.email, u."firstName", u."lastName", u.password, u."accountStatus",
-        u."twoFactorEnabled", u."twoFactorSecret", u."lastLogin",
+        u."twoFactorEnabled", u."twoFactorSecret", u."twoFactorType",u."twoFactorCode",u."twoFactorCodeExpires",u."twoFactorTarget", u."lastLogin",
         u."invitationToken", u."invitationExpires", u."invitedBy", u."invitedAt", u."activatedAt",
-        u."createdAt", u."updatedAt", u."roleId",
+        u."createdAt", u."updatedAt", u."roleId", u."has_changed_default_password", u."passwordChangedAt",
         r.name as "roleName",
         array_agg(p.name) FILTER (WHERE p.name IS NOT NULL) as "rolePermissions"
       FROM users u
@@ -51,9 +51,9 @@ export class UserDao extends BaseDao {
     const query = `
       SELECT 
         u.id, u.email, u."firstName", u."lastName", u.password , u."accountStatus",
-        u."twoFactorEnabled", u."twoFactorSecret", u."lastLogin",
+        u."twoFactorEnabled", u."twoFactorSecret", u."twoFactorType", u."lastLogin",
         u."invitationToken", u."invitationExpires", u."invitedBy", u."invitedAt", u."activatedAt",
-        u."createdAt", u."updatedAt", u."roleId", u."has_changed_default_password",
+        u."createdAt", u."updatedAt", u."roleId", u."has_changed_default_password", u."passwordChangedAt",
         r.name as "roleName",
         array_agg(p.name) FILTER (WHERE p.name IS NOT NULL) as "rolePermissions"
       FROM users u
@@ -244,6 +244,33 @@ export class UserDao extends BaseDao {
     `;
     const result = await this.query(query, [id]);
     return (result.rowCount ?? 0) > 0;
+  }
+
+  /**
+   * Get user by 2FA target (email or phone number)
+   * @param target Email address or phone number used for 2FA
+   * @returns User with role information or null
+   */
+  async getUserByTwoFactorTarget(target: string): Promise<UserWithRole | null> {
+    const query = `
+      SELECT 
+        u.id, u.email, u."firstName", u."lastName", u.password, u."accountStatus",
+        u."twoFactorEnabled", u."twoFactorSecret", u."twoFactorType", u."twoFactorCode", 
+        u."twoFactorCodeExpires", u."twoFactorTarget", u."lastLogin",
+        u."invitationToken", u."invitationExpires", u."invitedBy", u."invitedAt", u."activatedAt",
+        u."createdAt", u."updatedAt", u."roleId", u."has_changed_default_password", u."passwordChangedAt",
+        r.name as "roleName",
+        array_agg(p.name) FILTER (WHERE p.name IS NOT NULL) as "rolePermissions"
+      FROM users u
+      LEFT JOIN roles r ON u."roleId" = r.id
+      LEFT JOIN role_permissions rp ON r.id = rp."roleId"
+      LEFT JOIN permissions p ON rp."permissionId" = p.id
+      WHERE (u.email = $1 OR u."twoFactorTarget" = $1) 
+      AND u."twoFactorEnabled" = true
+      GROUP BY u.id, r.name
+    `;
+    const result = await this.query<UserWithRole>(query, [target]);
+    return result.rows[0] || null;
   }
 
   /**

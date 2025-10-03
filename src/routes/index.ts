@@ -7,5 +7,6 @@ export { roleRoutes } from './roles';
 export { invitationRoutes } from './invitations';
 
 export { miningSamplesRoutes } from './mining_samples';
+export { twoFactorRoutes } from './2faRoutes';
 
 export { default as testEmailRoute } from './test-email';

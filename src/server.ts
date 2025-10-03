@@ -4,11 +4,12 @@ import fastifyCors from '@fastify/cors';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyJwt from '@fastify/jwt';
-import { authRoutes, userRoutes, projectRoutes, drillingRoutes, profileRoutes, roleRoutes, invitationRoutes, testEmailRoute ,miningSamplesRoutes} from './routes';
+import { authRoutes, userRoutes, projectRoutes, drillingRoutes, profileRoutes, roleRoutes, invitationRoutes, testEmailRoute, miningSamplesRoutes, twoFactorRoutes } from './routes';
 import pool, { connectDatabase } from './config/database';
 import * as dotenv from 'dotenv';
 import pg from 'pg';
 import fastifyMultipart from '@fastify/multipart';
+import { registerAuthCheckHook } from './hooks/authCheck';
 
 dotenv.config();
 
@@ -59,6 +60,12 @@ async function main() {
   });
   await server.register(fastifyMultipart);
 
+  // Register auth check hook for 2FA enforcement
+  await registerAuthCheckHook(server, {
+    excludePaths: ['/auth/logout', '/docs', '/documentation'],
+    excludePatterns: [/^\/static\//, /^\/public\//]
+  });
+
   // Register routes
   await server.register(authRoutes, { prefix: '/auth' });
   await server.register(profileRoutes, { prefix: '/' });
@@ -68,6 +75,7 @@ async function main() {
   await server.register(projectRoutes, { prefix: '/projects' });
   await server.register(drillingRoutes, { prefix: '/drillings' });
   await server.register(miningSamplesRoutes, { prefix: '/' });
+  await server.register(twoFactorRoutes, { prefix: '/2fa' });
   await testEmailRoute(server);
 
 

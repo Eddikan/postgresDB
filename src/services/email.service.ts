@@ -14,7 +14,7 @@ const client = new MailtrapClient({ token: TOKEN });
 async function sendWelcomeTemplateEmail({ to, firstName, lastName, temporaryPassword, loginUrl }: { to: string, firstName: string, lastName: string, temporaryPassword: string, loginUrl: string }) {
   try {
     const response = await client.send({
-      from: { email: "hello@ime.com.ng", name: "Mailtrap Test" },
+      from: { email: "hello@ime.com.ng", name: "Primefrontier Test" },
       to: [{ email: to }],
       template_uuid: "bd3a5ff8-e72c-4557-9862-1328c4f6d3f1",
       template_variables: {
@@ -36,7 +36,7 @@ async function SendEmail({ to, subject, text, html }: { to: string, subject: str
   const client = new MailtrapClient({ token: TOKEN });
   const sender = {
     email: "hello@ime.com.ng",
-    name: "Mailtrap Test"
+    name: "Primefrontier Test"
   };
   // If template_uuid and template_variables are present, use MailtrapClient
   if (arguments[0].template_uuid && arguments[0].template_variables) {
@@ -111,7 +111,7 @@ export class EmailService {
     const text = 'Congrats! This is a test email sent via Mailtrap integration.';
     const html = '<h2>Mailtrap Integration Test</h2><p>Congrats! This is a test email sent via <strong>Mailtrap</strong> integration.</p>';
     return SendEmail({ to, subject, text, html });
-    // return this.sendEmail(to, subject, text, html);
+
   }
 
   /**
@@ -124,24 +124,25 @@ export class EmailService {
     html?: string
   ): Promise<boolean> {
     try {
-      if (!this.transporter) {
-        this.initializeTransporter();
-      }
+      // Create fresh transport each time (like working SendEmail function)
+      const transport = Nodemailer.createTransport(
+        MailtrapTransport({
+          token: TOKEN,
+        })
+      );
 
-      // Use sender object and recipient format as in send-email.ts
       const sender = {
-        address: config.FROM_EMAIL || "hello@ime.com.ng",
-        name: "Mailtrap Test"
+        email: config.FROM_EMAIL || "hello@ime.com.ng",
+        name: "Primefrontier Test"
       };
-      // Accept both string and array for recipients
-      const recipients = Array.isArray(to) ? to : [to];
+
       const mailOptions = {
-        from: sender,
-        to: recipients,
+        from: { address: sender.email, name: sender.name },
+        to,
         subject,
         text,
         html: html || text,
-        category: "Integration Test"
+        category: "Integration Test",
       };
 
       // For development - log email content instead of sending
@@ -151,8 +152,8 @@ export class EmailService {
         return true;
       }
 
-      const info = await this.transporter.sendMail(mailOptions);
-      console.log('Email sent: %s', info.messageId);
+      const result = await transport.sendMail(mailOptions);
+      console.log('Email sent successfully:', result);
       return true;
     } catch (error) {
       console.error('Failed to send email:', error);
@@ -312,7 +313,7 @@ The Primefrontier Team
       <p>Best regards,<br>The Primefrontier Team</p>
     `;
 
-    return this.sendEmail(email, subject, text, html);
+    return SendEmail({ to: email, subject, text, html });
   }
 
   /**
@@ -335,14 +336,14 @@ The Primefrontier Team
       <h2>Verification Code</h2>
       <p>Your verification code for Primefrontier is:</p>
       
-      <h1 style="color: #007bff; font-family: monospace; font-size: 36px; text-align: center; padding: 20px; background: #f8f9fa; border-radius: 5px;">${code}</h1>
+      <h1 style="color: #181a1cff; font-family: monospace; font-size: 36px; text-align: center; padding: 20px; background: #f8f9fa; border-radius: 5px;">${code}</h1>
       
       <p><strong>Note:</strong> This code will expire in 5 minutes.</p>
       
       <p>Best regards,<br>The Primefrontier Team</p>
     `;
 
-    return this.sendEmail(email, subject, text, html);
+    return SendEmail({ to:email, subject, text, html });
   }
 }
 
