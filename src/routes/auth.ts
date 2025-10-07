@@ -7,6 +7,7 @@ import { Permission, authenticate, requireJWT } from '../middleware/auth-sql';
 import { config } from '../config/config';
 import { CreateUserData, AccountStatus } from '../entities';
 import { TwoFactorService } from '../services/twoFactor.service';
+import { Logger } from '../utils/Logger';
 
 // Request body interfaces
 interface LoginBody {
@@ -173,7 +174,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       });
 
     } catch (error) {
-      console.error('Login error:', error);
+      Logger.error('Login error occurred', error);
       reply.code(500).send({ error: 'Internal server error' });
     }
   });
@@ -217,7 +218,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       });
 
     } catch (error) {
-      console.error('Registration error:', error);
+      Logger.error('Registration error occurred', error);
       reply.code(500).send({ error: 'Internal server error' });
     }
   });
@@ -243,7 +244,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       // TODO: Send email with reset token
       // For now, just return success (in production, would store token in Redis/cache and send email)
-      console.log('Password reset token generated for user:', user.email, 'Token:', resetToken);
+      Logger.info('Password reset token generated', { email: user.email, tokenGenerated: true });
       reply.send({ 
         message: 'If the email exists, a reset link has been sent',
         // Remove this in production - only for development
@@ -251,7 +252,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       });
 
     } catch (error) {
-      console.error('Password reset error:', error);
+      Logger.error('Password reset error occurred', error);
       reply.code(500).send({ error: 'Internal server error' });
     }
   });
@@ -325,7 +326,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       });
 
     } catch (error) {
-      console.error('Change password error:', error);
+      Logger.error('Change password error occurred', error);
       reply.code(500).send({ error: 'Internal server error' });
     }
   });
@@ -369,7 +370,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       });
 
     } catch (error) {
-      console.error('Get current user error:', error);
+      Logger.error('Get current user error occurred', error);
       reply.code(500).send({ error: 'Internal server error' });
     }
   });

@@ -10,6 +10,7 @@ import * as dotenv from 'dotenv';
 import pg from 'pg';
 import fastifyMultipart from '@fastify/multipart';
 import { registerAuthCheckHook } from './hooks/authCheck';
+import { Logger } from './utils/Logger';
 
 dotenv.config();
 
@@ -26,10 +27,9 @@ async function main() {
   // Connect to database pool
   try {
     await connectDatabase();
-    server.log.info('✅ Database pool initialized successfully');
+    Logger.info('✅ Database pool initialized successfully');
   } catch (err) {
-    server.log.error('❌ Database connection failed:');
-    console.error(err);
+    Logger.error('❌ Database connection failed', err);
     process.exit(1);
   }
 
@@ -85,9 +85,9 @@ async function main() {
   // Start server
   try {
     await server.listen({ port: Number(process.env.PORT) || 3000, host: '0.0.0.0' });
-    server.log.info(`🚀 Server running on port ${process.env.PORT || 3000}`);
+    Logger.info(`🚀 Server running on port ${process.env.PORT || 3000}`);
   } catch (err) {
-    server.log.error(err);
+    Logger.error('❌ Failed to start server', err);
     process.exit(1);
   }
 }

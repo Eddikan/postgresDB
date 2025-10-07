@@ -14,6 +14,7 @@
     "db:migrate": "node -e \"console.log('Database migration placeholder - add your migration logic here')\"",
     "seed": "npm run db:create && npm run db:seed",
     "test": "ts-node tests/basic.test.ts",
+    "test:logger": "ts-node tests/logger-test.ts",
     "test:lint": "echo \"Linting...\" && echo \"✅ No linting configured yet\"",
     "test:build": "npm run build && echo \"✅ Build test passed\""
   },
@@ -52,6 +53,7 @@
     "speakeasy": "^2.0.0",
     "tsconfig-paths": "^4.2.0",
     "twilio": "^5.10.0",
+    "winston": "^3.18.3",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
