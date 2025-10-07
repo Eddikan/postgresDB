@@ -19,7 +19,7 @@ interface ChangePasswordBody {
 
 export async function profileRoutes(fastify: FastifyInstance) {
   // Initialize UserDao
-  const userDao = new UserDao(databaseConnection);
+  const userDao = new UserDao();
 
   // Get logged-in user profile
   fastify.get('/profile', { preHandler: [authenticate, requireActiveAccount] }, async (request: any, reply) => {

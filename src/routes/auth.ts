@@ -31,7 +31,7 @@ interface ChangePasswordBody {
 
 export async function authRoutes(fastify: FastifyInstance) {
   // Initialize UserDao and TwoFactorService
-  const userDao = new UserDao(databaseConnection);
+  const userDao = new UserDao();
   const twoFactorService = new TwoFactorService();
 
   // Login endpoint

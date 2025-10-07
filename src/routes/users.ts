@@ -8,7 +8,7 @@ import { AccountStatus } from '../entities';
 export async function userRoutes(fastify: FastifyInstance) {
   // Initialize DAO
   const database = new DatabaseConnection();
-  const userDao = new UserDao(database);
+  const userDao = new UserDao();
 
     /**
      * POST /users

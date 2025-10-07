@@ -6,8 +6,8 @@ import { requireActiveAccount } from '../middleware/account-status';
 
 export async function roleRoutes(fastify: FastifyInstance) {
   // Initialize DAOs
-  const roleDao = new RoleDao(databaseConnection);
-  const permissionDao = new PermissionDao(databaseConnection);
+  const roleDao = new RoleDao();
+  const permissionDao = new PermissionDao();
 
   // Get all roles with their permissions
   fastify.get('/roles', { preHandler: [authenticate, requireActiveAccount] }, async (request: any, reply) => {

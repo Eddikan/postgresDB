@@ -48,7 +48,7 @@ export function createAuthCheckHook(options: AuthCheckOptions = {}) {
       }
 
       // Get full user data to check 2FA requirements
-      const userDao = new UserDao(new DatabaseConnection());
+      const userDao = new UserDao();
       const fullUser = await userDao.getUserById(user.id);
       
       if (!fullUser) {

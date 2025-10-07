@@ -27,7 +27,7 @@ export class TwoFactorService {
     this.emailProvider = new EmailProvider();
     this.smsProvider = new SmsProvider();
     this.totpProvider = new TotpProvider();
-    this.userDao = new UserDao(new DatabaseConnection());
+    this.userDao = new UserDao();
   }
 
   /**
