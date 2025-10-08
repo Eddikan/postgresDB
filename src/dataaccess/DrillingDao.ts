@@ -1,14 +1,13 @@
-import { BaseDao } from './BaseDao';
+import { SequelizeBaseDao } from './SequelizeBaseDao';
 import { Drilling, CreateDrillingData, UpdateDrillingData } from '../entities';
-import { DatabaseConnection } from '../datasource';
 
 /**
  * Drilling Data Access Object with SQL injection protection
  * All queries use parameterized statements to prevent SQL injection
  */
-export class DrillingDao extends BaseDao {
-  constructor(database: DatabaseConnection) {
-    super(database);
+export class DrillingDao extends SequelizeBaseDao {
+  constructor() {
+    super();
   }
 
   /**

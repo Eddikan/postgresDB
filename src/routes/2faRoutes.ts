@@ -40,8 +40,7 @@ export async function twoFactorRoutes(fastify: FastifyInstance) {
       if (result.success) {
         // Get updated user data to include expiration time for OTP codes
         const { UserDao } = await import('../dataaccess');
-        const { databaseConnection } = await import('../datasource');
-        const userDao = new UserDao(databaseConnection);
+        const userDao = new UserDao();
         const updatedUser = await userDao.getUserById(userId);
 
         // Calculate minutes before code expires for Email/SMS
@@ -64,7 +63,7 @@ export async function twoFactorRoutes(fastify: FastifyInstance) {
       }
     } catch (error: any) {
       fastify.log.error('2FA setup error:', error);
-    console.error('2FA setup error:', error);
+      console.error('2FA setup error:', error);
       return reply.status(500).send({ error: 'Setup failed' });
     }
   });
@@ -79,9 +78,9 @@ export async function twoFactorRoutes(fastify: FastifyInstance) {
       method?: 'email' | 'sms' | 'totp'; // 2FA method for setup
       target?: string; // Required for login type (email or phone number)
     };
-  }>('/send-otp',{
-      preHandler: requireJWT
-    }, async (request, reply) => {
+  }>('/send-otp', {
+    preHandler: requireJWT
+  }, async (request, reply) => {
     try {
       const { type, method, target } = request.body;
 
@@ -123,9 +122,8 @@ export async function twoFactorRoutes(fastify: FastifyInstance) {
 
         // Import UserDao to get user by target (email or phone)
         const { UserDao } = await import('../dataaccess');
-        const { databaseConnection } = await import('../datasource');
-        const userDao = new UserDao(databaseConnection);
-        
+        const userDao = new UserDao();
+
         // Get user by target (email or phone number)
         const user = await userDao.getUserByTwoFactorTarget(target);
         if (!user) {
@@ -218,10 +216,11 @@ export async function twoFactorRoutes(fastify: FastifyInstance) {
       // Import UserDao to get user by target
       const { UserDao } = await import('../dataaccess');
       const { databaseConnection } = await import('../datasource');
-      const userDao = new UserDao(databaseConnection);
-      
+      const userDao = new UserDao();
+
       // Get user by target (email or phone number)
       const user = await userDao.getUserByTwoFactorTarget(target);
+
       if (!user) {
         // Don't reveal if user exists or not for security
         return reply.status(400).send({
@@ -230,7 +229,6 @@ export async function twoFactorRoutes(fastify: FastifyInstance) {
       }
 
       const result = await twoFactorService.verifyForLogin(user.id, code);
-
       if (result.success) {
         // Import jwt for token generation
         const jwt = await import('jsonwebtoken');
@@ -278,6 +276,7 @@ export async function twoFactorRoutes(fastify: FastifyInstance) {
       }
     } catch (error: any) {
       fastify.log.error('2FA login verification error:', error);
+      console.log('2FA login verification error:', error);
       return reply.status(500).send({ error: 'Verification failed' });
     }
   });
@@ -314,12 +313,12 @@ export async function twoFactorRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const userId = request.userProfile!.id;
-      
+
       // Import UserDao to get complete user data
       const { UserDao } = await import('../dataaccess');
       const { databaseConnection } = await import('../datasource');
-      const userDao = new UserDao(databaseConnection);
-      
+      const userDao = new UserDao();
+
       // Get complete user from database
       const user = await userDao.getUserById(userId);
       if (!user) {

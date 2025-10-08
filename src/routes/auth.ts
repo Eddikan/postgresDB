@@ -32,7 +32,7 @@ interface ChangePasswordBody {
 
 export async function authRoutes(fastify: FastifyInstance) {
   // Initialize UserDao and TwoFactorService
-  const userDao = new UserDao(databaseConnection);
+  const userDao = new UserDao();
   const twoFactorService = new TwoFactorService();
 
   // Login endpoint
@@ -112,7 +112,7 @@ export async function authRoutes(fastify: FastifyInstance) {
               userId: user.id,
               message: otpResult.success 
                 ? `2FA code sent to your ${user.twoFactorType}. Please enter the code to complete login.`
-                : 'Please provide your 2FA code to complete login',
+                : 'Otp was not sent. Please try again.',
               otpSent: otpResult.success
             });
           } else {

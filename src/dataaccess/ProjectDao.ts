@@ -1,14 +1,13 @@
-import { BaseDao } from './BaseDao';
+import { SequelizeBaseDao } from './SequelizeBaseDao';
 import { Project, CreateProjectData, UpdateProjectData } from '../entities';
-import { DatabaseConnection } from '../datasource';
 
 /**
- * Project Data Access Object with SQL injection protection
- * All queries use parameterized statements to prevent SQL injection
+ * Project Data Access Object with Sequelize integration
+ * All queries use Sequelize with parameterized statements for SQL injection protection
  */
-export class ProjectDao extends BaseDao {
-  constructor(database: DatabaseConnection) {
-    super(database);
+export class ProjectDao extends SequelizeBaseDao {
+  constructor() {
+    super();
   }
 
   /**

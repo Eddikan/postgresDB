@@ -1,6 +1,5 @@
-import { BaseDao } from './BaseDao';
+import { SequelizeBaseDao } from './SequelizeBaseDao';
 import { Role, RoleName, Permission } from '../entities';
-import { DatabaseConnection } from '../datasource';
 
 export interface RoleWithPermissions extends Omit<Role, 'permissions'> {
   permissions?: string[];
@@ -17,12 +16,12 @@ export interface UpdateRoleData {
 }
 
 /**
- * Role Data Access Object with SQL injection protection
- * All queries use parameterized statements to prevent SQL injection
+ * Role Data Access Object with Sequelize integration
+ * All queries use Sequelize with parameterized statements for SQL injection protection
  */
-export class RoleDao extends BaseDao {
-  constructor(database: DatabaseConnection) {
-    super(database);
+export class RoleDao extends SequelizeBaseDao {
+  constructor() {
+    super();
   }
 
   /**

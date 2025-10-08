@@ -13,7 +13,7 @@ import { config } from '../config/config';
 export async function invitationRoutes(fastify: FastifyInstance) {
   // Initialize DAOs
   const database = new DatabaseConnection();
-  const userDao = new UserDao(database);
+  const userDao = new UserDao();
 
   /**
    * POST /api/invitations/invite

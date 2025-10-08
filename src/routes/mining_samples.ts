@@ -9,7 +9,7 @@ import { DatabaseConnection } from '../datasource';
 export async function miningSamplesRoutes(fastify: FastifyInstance) {
   fastify.register(require('fastify-multer').contentParser);
   const database = new DatabaseConnection();
-  const miningSamplesDao = new MiningSamplesDao(database);
+  const miningSamplesDao = new MiningSamplesDao();
   const upload = multer({ dest: 'uploads/' });
 
   fastify.get('/mining-samples', async (request, reply) => {

@@ -21,11 +21,20 @@ export class Logger {
           winston.format.errors({ stack: true }),
           winston.format.colorize({ all: true }),
           winston.format.printf((info) => {
-            const { timestamp, level, message, stack } = info;
-            if (stack) {
-              return `${timestamp} [${level}]: ${message}\n${stack}`;
+            const { timestamp, level, message, stack, ...meta } = info;
+            let output = `${timestamp} [${level}]: ${message}`;
+            
+            // Add metadata if present
+            const metaKeys = Object.keys(meta);
+            if (metaKeys.length > 0) {
+              output += '\n' + JSON.stringify(meta, null, 2);
             }
-            return `${timestamp} [${level}]: ${message}`;
+            
+            if (stack) {
+              output += '\n' + stack;
+            }
+            
+            return output;
           })
         ),
         transports: [
