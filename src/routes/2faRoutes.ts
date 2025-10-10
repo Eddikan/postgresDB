@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { TwoFactorService, TwoFactorSetupRequest, TwoFactorVerificationRequest } from '../services/twoFactor.service';
+import { TwoFactorService, TwoFactorSetupRequest } from '../services/twoFactor.service';
 import { TwoFactorType } from '../entities/User';
 import { authenticate } from '../middleware';
 import { requireActiveAccount } from '../middleware/account-status';
@@ -215,7 +215,7 @@ export async function twoFactorRoutes(fastify: FastifyInstance) {
 
       // Import UserDao to get user by target
       const { UserDao } = await import('../dataaccess');
-      const { databaseConnection } = await import('../datasource');
+
       const userDao = new UserDao();
 
       // Get user by target (email or phone number)

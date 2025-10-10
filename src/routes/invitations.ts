@@ -59,7 +59,9 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         password: passwordHash,
         accountStatus: AccountStatus.INACTIVE,
         roleId,
-        twoFactorEnabled: false
+        twoFactorEnabled: false,
+        invitedBy: request.userProfile!.id,  // Current authenticated user
+        invitedAt: new Date()                // Current timestamp
       };
       const newUser = await userDao.createUser(userData);
 

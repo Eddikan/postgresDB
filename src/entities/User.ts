@@ -52,6 +52,7 @@ export interface CreateUserData {
   invitationToken?: string;
   invitationExpires?: Date;
   invitedBy?: string;
+  invitedAt?: Date;
   has_changed_default_password?: boolean;
   passwordChangedAt?: Date;
 }

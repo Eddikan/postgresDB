@@ -39,7 +39,7 @@ export class TotpProvider implements TwoFactorProvider {
     try {
       // Generate secret for the user
       const secret = speakeasy.generateSecret({
-        name: userEmail,
+        name: `Drilling Operations - (${userEmail})`,  // Custom format
         issuer: 'Primefrontier',
         length: 32,
       });

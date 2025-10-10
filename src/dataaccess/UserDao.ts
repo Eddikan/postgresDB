@@ -307,7 +307,6 @@ export class UserDao extends SequelizeBaseDao {
         ]
       }
     });
-    console.log('user is',user)
 
     if (!user) {
       return null;
