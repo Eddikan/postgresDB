@@ -72,6 +72,47 @@ npm run dev
    npm run dev
    ```
 
+## Docker Setup
+
+### Quick Start with Docker
+```bash
+# 1. Clone and configure
+git clone <repository-url>
+cd primefrontier
+cp .env.docker .env
+# Edit .env with your configuration
+
+# 2. Run with Docker (Production)
+npm run docker:prod
+
+# 3. Run with Docker (Development with hot reload)
+npm run docker:dev
+```
+
+### Docker Commands
+```bash
+# Development with hot reload
+npm run docker:dev          # Start dev environment
+npm run docker:stop-dev     # Stop dev environment
+
+# Production
+npm run docker:prod         # Start production environment
+npm run docker:stop         # Stop production environment
+
+# Maintenance
+npm run docker:clean        # Clean up containers and volumes
+npm run docker:build        # Build image only
+```
+
+### What Docker Provides
+- ✅ **PostgreSQL database** automatically configured
+- ✅ **Automatic database setup** (migrations + seeding)
+- ✅ **Hot reload in development** mode
+- ✅ **Production-ready** multi-stage build
+- ✅ **Health checks** for both services
+- ✅ **Volume persistence** for database data
+- ✅ **Network isolation** between services
+
 ## Authentication & Authorization
 - Email/password login, Google OAuth2, JWT sessions
 - 2FA via TOTP (Google Authenticator), SMS (Twilio), Email (nodemailer)
@@ -95,6 +136,14 @@ npm run dev
 - `npm run db:seed:all` — Seed initial data only
 - `npm run db:migrate:status` — Check migration status
 - `npm run migration:create <name>` — Create new migration file
+
+### Docker
+- `npm run docker:dev` — Start development environment with hot reload
+- `npm run docker:prod` — Start production environment  
+- `npm run docker:stop` — Stop production environment
+- `npm run docker:stop-dev` — Stop development environment
+- `npm run docker:clean` — Clean up containers and volumes
+- `npm run docker:build` — Build Docker image only
 
 ### Legacy
 - `npm run seed` — Legacy: Create schema + seed data (uses TypeScript scripts)
