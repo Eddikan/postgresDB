@@ -10,7 +10,9 @@ export async function miningSamplesRoutes(fastify: FastifyInstance) {
   fastify.register(require('fastify-multer').contentParser);
   const database = new DatabaseConnection();
   const miningSamplesDao = new MiningSamplesDao();
-  const upload = multer({ dest: 'uploads/' });
+  // Use /tmp for Lambda, uploads/ for local
+  const uploadDir = process.env.AWS_LAMBDA_FUNCTION_NAME ? '/tmp/uploads/' : 'uploads/';
+  const upload = multer({ dest: uploadDir });
 
   fastify.get('/mining-samples', async (request, reply) => {
     try {

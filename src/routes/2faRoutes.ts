@@ -3,7 +3,7 @@ import { TwoFactorService, TwoFactorSetupRequest } from '../services/twoFactor.s
 import { TwoFactorType } from '../entities/User';
 import { authenticate } from '../middleware';
 import { requireActiveAccount } from '../middleware/account-status';
-import { requireJWT } from '@/middleware/auth-sql';
+import { requireJWT } from '../middleware/auth-sql';
 
 export async function twoFactorRoutes(fastify: FastifyInstance) {
   const twoFactorService = new TwoFactorService();
