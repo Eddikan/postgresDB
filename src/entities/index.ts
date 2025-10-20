@@ -2,6 +2,8 @@
 export { 
   User, 
   AccountStatus, 
+  TwoFactorType,
+  FieldRole,
   CreateUserData, 
   UpdateUserData 
 } from './User';

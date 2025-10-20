@@ -98,10 +98,9 @@ export async function initializeSequelize(): Promise<void> {
     await sequelize.authenticate();
     console.log('✅ Sequelize connection established successfully.');
 
-    if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ alter: true });
-      console.log('✅ Database models synchronized.');
-    }
+    // Note: Using migrations instead of auto-sync for better control
+    // Auto-sync disabled to prevent schema conflicts
+    console.log('✅ Sequelize ready (using migrations for schema management)');
   } catch (error) {
     console.error('❌ Unable to connect to the database:', error);
     throw error;

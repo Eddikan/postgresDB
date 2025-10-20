@@ -4,7 +4,7 @@ import { UserDao } from '../dataaccess';
 import { DatabaseConnection } from '../datasource';
 import { EmailService } from '../services';
 import { authenticate, requirePermission, Permission } from '../middleware';
-import { CreateUserData, AccountStatus } from '../entities';
+import { CreateUserData, AccountStatus, FieldRole } from '../entities';
 import { config } from '../config/config';
 
 /**
@@ -24,17 +24,25 @@ export async function invitationRoutes(fastify: FastifyInstance) {
       email: string;
       firstName: string;
       lastName: string;
-      roleId?: string;
+      roleId: string;
+      fieldRole: string;
     };
   }>('/invite', {
     preHandler: [authenticate, requirePermission(Permission.SYSTEM_MANAGE_USERS)]
   }, async (request, reply) => {
     try {
-      const { email, firstName, lastName, roleId } = request.body;
+      const { email, firstName, lastName, roleId, fieldRole } = request.body;
       // Validate required fields
-      if (!email || !firstName || !lastName) {
+      if (!email || !firstName || !lastName || !roleId || !fieldRole) {
         return reply.status(400).send({
-          error: 'Email, first name, and last name are required'
+          error: 'Email, first name, last name, role, and field role are required'
+        });
+      }
+
+      // Validate fieldRole enum
+      if (!Object.values(FieldRole).includes(fieldRole as FieldRole)) {
+        return reply.status(400).send({
+          error: 'Invalid field role. Must be one of: driller, geologist, miner'
         });
       }
 
@@ -59,6 +67,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         password: passwordHash,
         accountStatus: AccountStatus.INACTIVE,
         roleId,
+        fieldRole: fieldRole as FieldRole,
         twoFactorEnabled: false,
         invitedBy: request.userProfile!.id,  // Current authenticated user
         invitedAt: new Date()                // Current timestamp

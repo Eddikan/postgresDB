@@ -9,6 +9,11 @@ module.exports = {
     port: process.env.DB_PORT || 5432,
     dialect: 'postgres',
     logging: console.log,
+    dialectOptions: {
+      ssl: process.env.DB_HOST && process.env.DB_HOST.includes('render.com')
+        ? { rejectUnauthorized: false }
+        : false,
+    },
   },
   test: {
     username: process.env.DB_USERNAME,

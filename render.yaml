@@ -5,8 +5,8 @@ services:
     name: primefrontier-backend
     env: node
     plan: free
-    buildCommand: npx ts-node scripts/create-db-schema.ts && npm ci --legacy-peer-deps && npm run build
-    startCommand: node dist/server.js
+    buildCommand: npm ci --legacy-peer-deps && npm run build
+    startCommand: npm run render:start
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV

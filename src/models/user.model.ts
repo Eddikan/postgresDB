@@ -1,5 +1,5 @@
 import { Table, Column, Model, DataType, PrimaryKey, Default, AllowNull, CreatedAt, UpdatedAt, Unique, Index, BelongsTo, ForeignKey } from 'sequelize-typescript';
-import { AccountStatus, TwoFactorType } from '../entities/User';
+import { AccountStatus, TwoFactorType, FieldRole } from '../entities/User';
 import Role from './role.model';
 
 @Table({
@@ -35,6 +35,9 @@ export default class User extends Model {
   @ForeignKey(() => Role)
   @Column(DataType.UUID)
   declare roleId?: string;
+
+  @Column(DataType.ENUM(...Object.values(FieldRole)))
+  declare fieldRole?: FieldRole;
 
   // 2FA fields
   @Column(DataType.TEXT)

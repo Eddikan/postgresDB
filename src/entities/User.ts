@@ -13,6 +13,13 @@ export enum TwoFactorType {
   TOTP = 'totp',
 }
 
+// Field role enum for user specialization
+export enum FieldRole {
+  DRILLER = 'driller',
+  GEOLOGIST = 'geologist',
+  MINER = 'miner'
+}
+
 // User interface for raw SQL operations
 export interface User {
   id: string;
@@ -22,6 +29,7 @@ export interface User {
   password: string;
   accountStatus: AccountStatus;
   roleId?: string;
+  fieldRole?: FieldRole;
   twoFactorSecret?: string;
   twoFactorEnabled: boolean;
   twoFactorType?: TwoFactorType;
@@ -48,6 +56,7 @@ export interface CreateUserData {
   password: string;
   accountStatus?: AccountStatus;
   roleId?: string;
+  fieldRole?: FieldRole;
   twoFactorEnabled?: boolean;
   invitationToken?: string;
   invitationExpires?: Date;
@@ -66,6 +75,7 @@ export interface UpdateUserData {
   password?: string;
   accountStatus?: AccountStatus;
   roleId?: string;
+  fieldRole?: FieldRole;
   twoFactorSecret?: string;
   twoFactorEnabled?: boolean;
   twoFactorType?: TwoFactorType;

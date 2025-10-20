@@ -1,4 +1,5 @@
 import { Table, Column, Model, DataType, PrimaryKey, Default, AllowNull, CreatedAt, UpdatedAt, Unique, HasMany } from 'sequelize-typescript';
+import { RoleName } from '../entities/Role';
 
 @Table({
   tableName: 'roles',
@@ -12,8 +13,8 @@ export default class Role extends Model {
 
   @Unique
   @AllowNull(false)
-  @Column(DataType.STRING)
-  declare name: string;
+  @Column(DataType.ENUM(...Object.values(RoleName)))
+  declare name: RoleName;
 
   @Column(DataType.TEXT)
   declare description?: string;

@@ -6,7 +6,9 @@ import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyJwt from '@fastify/jwt';
 import { authRoutes, userRoutes, projectRoutes, drillingRoutes, profileRoutes, roleRoutes, invitationRoutes, testEmailRoute, miningSamplesRoutes, twoFactorRoutes } from './routes';
 import pool, { connectDatabase } from './config/database';
+import { initializeSequelize, sequelize } from './config/sequelize';
 import * as dotenv from 'dotenv';
+import { Sequelize } from 'sequelize-typescript';
 import pg from 'pg';
 import fastifyMultipart from '@fastify/multipart';
 import { registerAuthCheckHook } from './hooks/authCheck';
@@ -14,27 +16,34 @@ import { Logger } from './utils/Logger';
 
 dotenv.config();
 
-// Extend Fastify instance to include db pool
+// Extend Fastify instance to include both raw pool and Sequelize
 declare module 'fastify' {
   interface FastifyInstance {
-    db: pg.Pool;
+    db: pg.Pool;        // For raw SQL queries
+    sequelize: Sequelize; // For ORM queries
   }
 }
 
 const server = Fastify({ logger: true });
 
 async function main() {
-  // Connect to database pool
+  // Initialize both raw database pool and Sequelize
   try {
+    // Raw connection pool for existing queries
     await connectDatabase();
     Logger.info('✅ Database pool initialized successfully');
+    
+    // Sequelize for ORM and auto-sync in development  
+    await initializeSequelize();
+    Logger.info('✅ Sequelize initialized successfully');
   } catch (err) {
     Logger.error('❌ Database connection failed', err);
     process.exit(1);
   }
 
-  // Make db pool accessible in routes
-  server.decorate('db', pool);
+  // Make both accessible in routes
+  server.decorate('db', pool);           // Raw SQL queries
+  server.decorate('sequelize', sequelize); // ORM queries
 
   // Register Express compatibility
   await server.register(fastifyExpress);

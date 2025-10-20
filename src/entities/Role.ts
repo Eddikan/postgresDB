@@ -2,10 +2,17 @@
 export enum RoleName {
   SUPER_ADMIN = 'super_admin',
   ADMIN = 'admin',
-  GEOLOGIST = 'geologist',
+  MANAGER = 'manager',
+  EDITOR = 'editor',
+  CONTRIBUTOR = 'contributor',
+  VIEWER = 'viewer'
+}
+
+// Field role enum for user specialization
+export enum FieldRole {
   DRILLER = 'driller',
-  JUNIOR_DRILLER = 'junior_driller',
-  USER = 'user'
+  GEOLOGIST = 'geologist',
+  MINER = 'miner'
 }
 
 // Permission enum

@@ -76,32 +76,111 @@ async function seedDatabase() {
         name: 'admin',
         description: 'Administrator with most permissions',
         permissions: [
-          'user.create', 'user.read', 'user.update', 'user.invite',
-          'project.create', 'project.read', 'project.update', 'project.delete',
-          'drilling.create', 'drilling.read', 'drilling.update', 'drilling.delete',
-          'role.read'
+          Permission.SYSTEM_MANAGE_USERS,
+          Permission.SYSTEM_INTEGRATIONS,
+          Permission.SYSTEM_AUDIT_LOGS,
+          Permission.PROJECT_CREATE,
+          Permission.PROJECT_ARCHIVE,
+          Permission.PROJECT_READ,
+          Permission.PROJECT_ASSIGN_PERMISSIONS,
+          Permission.DRILLING_APPROVE_LOGS,
+          Permission.DRILLING_APPROVE_MODELS,
+          Permission.DRILLING_REVIEW_PROGRESS,
+          Permission.DRILLING_APPROVE_ADJUSTMENTS,
+          Permission.DRILLING_VALIDATE_DATA,
+          Permission.DRILLING_INPUT_LOGS,
+          Permission.DRILLING_UPLOAD_PHOTOS,
+          Permission.DRILLING_ENTER_ASSAYS,
+          Permission.DRILLING_UPDATE_GEOLOGY,
+          Permission.DRILLING_INPUT_PROGRESS,
+          Permission.DRILLING_TRACK_SAMPLES,
+          Permission.DRILLING_UPLOAD_NOTES,
+          Permission.DRILLING_READ,
+          Permission.REPORTS_RUN_EXPORT,
+          Permission.REPORTS_CONFIGURE_DASHBOARDS,
+          Permission.REPORTS_RUN_VISUALIZATIONS,
+          Permission.REPORTS_VIEW_DASHBOARDS,
+          Permission.REPORTS_VIEW_ESG_METRICS,
+          Permission.DATA_LOCK_VALIDATED,
+          Permission.DATA_REQUIRE_APPROVAL,
+          Permission.ACCESS_ALL_PROJECTS,
+          Permission.ACCESS_ASSIGNED_PROJECTS
         ]
       },
       {
         name: 'manager',
-        description: 'Project manager with project and drilling permissions',
+        description: 'Project manager with project oversight permissions',
         permissions: [
-          'user.read', 'project.create', 'project.read', 'project.update',
-          'drilling.create', 'drilling.read', 'drilling.update', 'drilling.delete'
+          Permission.PROJECT_CREATE,
+          Permission.PROJECT_READ,
+          Permission.PROJECT_ASSIGN_PERMISSIONS,
+          Permission.DRILLING_APPROVE_LOGS,
+          Permission.DRILLING_APPROVE_MODELS,
+          Permission.DRILLING_REVIEW_PROGRESS,
+          Permission.DRILLING_APPROVE_ADJUSTMENTS,
+          Permission.DRILLING_VALIDATE_DATA,
+          Permission.DRILLING_INPUT_LOGS,
+          Permission.DRILLING_UPLOAD_PHOTOS,
+          Permission.DRILLING_ENTER_ASSAYS,
+          Permission.DRILLING_UPDATE_GEOLOGY,
+          Permission.DRILLING_INPUT_PROGRESS,
+          Permission.DRILLING_TRACK_SAMPLES,
+          Permission.DRILLING_UPLOAD_NOTES,
+          Permission.DRILLING_READ,
+          Permission.REPORTS_RUN_EXPORT,
+          Permission.REPORTS_RUN_VISUALIZATIONS,
+          Permission.REPORTS_VIEW_DASHBOARDS,
+          Permission.REPORTS_VIEW_ESG_METRICS,
+          Permission.DATA_REQUIRE_APPROVAL,
+          Permission.ACCESS_ASSIGNED_PROJECTS
         ]
       },
       {
-        name: 'driller',
-        description: 'Driller with drilling permissions',
+        name: 'editor',
+        description: 'Content editor with data modification permissions',
         permissions: [
-          'project.read', 'drilling.create', 'drilling.read', 'drilling.update'
+          Permission.PROJECT_READ,
+          Permission.DRILLING_VALIDATE_DATA,
+          Permission.DRILLING_INPUT_LOGS,
+          Permission.DRILLING_UPLOAD_PHOTOS,
+          Permission.DRILLING_ENTER_ASSAYS,
+          Permission.DRILLING_UPDATE_GEOLOGY,
+          Permission.DRILLING_INPUT_PROGRESS,
+          Permission.DRILLING_TRACK_SAMPLES,
+          Permission.DRILLING_UPLOAD_NOTES,
+          Permission.DRILLING_READ,
+          Permission.REPORTS_RUN_VISUALIZATIONS,
+          Permission.REPORTS_VIEW_DASHBOARDS,
+          Permission.REPORTS_VIEW_ESG_METRICS,
+          Permission.ACCESS_ASSIGNED_PROJECTS
         ]
       },
       {
-        name: 'junior_driller',
-        description: 'Junior driller with read permissions',
+        name: 'contributor',
+        description: 'Data contributor with limited modification permissions',
         permissions: [
-          'project.read', 'drilling.read'
+          Permission.PROJECT_READ,
+          Permission.DRILLING_INPUT_LOGS,
+          Permission.DRILLING_UPLOAD_PHOTOS,
+          Permission.DRILLING_ENTER_ASSAYS,
+          Permission.DRILLING_INPUT_PROGRESS,
+          Permission.DRILLING_TRACK_SAMPLES,
+          Permission.DRILLING_UPLOAD_NOTES,
+          Permission.DRILLING_READ,
+          Permission.REPORTS_VIEW_DASHBOARDS,
+          Permission.REPORTS_VIEW_ESG_METRICS,
+          Permission.ACCESS_ASSIGNED_PROJECTS
+        ]
+      },
+      {
+        name: 'viewer',
+        description: 'Read-only access to assigned projects',
+        permissions: [
+          Permission.PROJECT_READ,
+          Permission.DRILLING_READ,
+          Permission.REPORTS_VIEW_DASHBOARDS,
+          Permission.REPORTS_VIEW_ESG_METRICS,
+          Permission.ACCESS_ASSIGNED_PROJECTS
         ]
       }
     ];
