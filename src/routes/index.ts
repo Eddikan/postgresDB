@@ -5,6 +5,7 @@ export { authRoutes } from './auth';
 export { profileRoutes } from './profile';
 export { roleRoutes } from './roles';
 export { invitationRoutes } from './invitations';
+export { organisationRoutes } from './organisation';
 
 export { miningSamplesRoutes } from './mining_samples';
 export { twoFactorRoutes } from './2faRoutes';

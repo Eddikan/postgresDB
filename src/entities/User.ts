@@ -51,9 +51,11 @@ export interface User {
   email: string;
   firstName?: string;
   lastName?: string;
+  phoneNumber?: string;
   password: string;
   accountStatus: AccountStatus;
   roleId?: string;
+  organisationId?: string;
   fieldRole?: FieldRole;
   twoFactorSecret?: string;
   twoFactorEnabled: boolean;
@@ -78,9 +80,11 @@ export interface CreateUserData {
   email: string;
   firstName?: string;
   lastName?: string;
+  phoneNumber?: string;
   password: string;
   accountStatus?: AccountStatus;
   roleId?: string;
+  organisationId?: string;
   fieldRole?: FieldRole;
   twoFactorEnabled?: boolean;
   invitationToken?: string;
@@ -97,9 +101,11 @@ export interface UpdateUserData {
   email?: string;
   firstName?: string;
   lastName?: string;
+  phoneNumber?: string;
   password?: string;
   accountStatus?: AccountStatus;
   roleId?: string;
+  organisationId?: string;
   fieldRole?: FieldRole;
   twoFactorSecret?: string;
   twoFactorEnabled?: boolean;

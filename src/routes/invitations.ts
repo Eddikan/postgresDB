@@ -6,6 +6,7 @@ import { EmailService } from '../services';
 import { authenticate, requirePermission, Permission } from '../middleware';
 import { CreateUserData, AccountStatus, FieldRole } from '../entities';
 import { config } from '../config/config';
+import {Logger} from '../utils/Logger';
 
 /**
  * User invitation routes
@@ -104,7 +105,9 @@ export async function invitationRoutes(fastify: FastifyInstance) {
       });
 
     } catch (error: any) {
-      fastify.log.error('Error sending user invitation:', error);
+      console.log('error sendingss user invitation:',error)
+
+      Logger.error('Error sendingsss user invitation:');
       return reply.status(500).send({
         error: 'Failed to send user invitation'
       });

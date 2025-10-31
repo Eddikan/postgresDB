@@ -362,4 +362,94 @@ export class UserDao extends SequelizeBaseDao {
     
     return count > 0;
   }
+
+  /**
+   * Create a user for organisation setup (superadmin)
+   * @param userData User data including organisation info
+   * @returns Created user with role information
+   */
+  async createOrganisationUser(userData: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+    password: string;
+    organisationId: string;
+    roleId: string;
+  }): Promise<UserWithRole | null> {
+    const user = await UserModel.create({
+      email: userData.email,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      phoneNumber: userData.phoneNumber,
+      password: userData.password,
+      organisationId: userData.organisationId,
+      roleId: userData.roleId,
+      accountStatus: 'active',
+      has_changed_default_password: false
+    });
+
+    return this.getUserById(user.id);
+  }
+
+  /**
+   * Check if an organisation already has a superadmin
+   * @param organisationId Organisation ID
+   * @returns True if superadmin exists
+   */
+  async organisationHasSuperAdmin(organisationId: string): Promise<boolean> {
+    const count = await UserModel.count({
+      include: [{
+        model: RoleModel,
+        where: { name: 'super_admin' }
+      }],
+      where: { organisationId }
+    });
+    
+    return count > 0;
+  }
+
+  /**
+   * Get users by organisation
+   * @param organisationId Organisation ID
+   * @returns Array of users
+   */
+  async getUsersByOrganisation(organisationId: string): Promise<UserWithRole[]> {
+    const users = await UserModel.findAll({
+      where: { organisationId },
+      include: [{
+        model: RoleModel,
+        attributes: ['name', 'description']
+      }]
+    });
+
+    return users.map(user => ({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      phoneNumber: user.phoneNumber,
+      password: user.password,
+      accountStatus: user.accountStatus,
+      roleId: user.roleId,
+      organisationId: user.organisationId,
+      twoFactorEnabled: user.twoFactorEnabled,
+      twoFactorSecret: user.twoFactorSecret,
+      twoFactorType: user.twoFactorType,
+      twoFactorCode: user.twoFactorCode,
+      twoFactorCodeExpires: user.twoFactorCodeExpires,
+      twoFactorTarget: user.twoFactorTarget,
+      lastLogin: user.lastLogin,
+      invitationToken: user.invitationToken,
+      invitationExpires: user.invitationExpires,
+      invitedBy: user.invitedBy,
+      invitedAt: user.invitedAt,
+      activatedAt: user.activatedAt,
+      passwordChangedAt: user.passwordChangedAt,
+      has_changed_default_password: user.has_changed_default_password,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      roleName: (user as any).Role?.name
+    }));
+  }
 }

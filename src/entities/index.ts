@@ -30,3 +30,10 @@ export {
   CreateDrillingData, 
   UpdateDrillingData 
 } from './Drilling';
+
+// Organisation exports
+export { 
+  Organisation, 
+  CreateOrganisationData, 
+  UpdateOrganisationData 
+} from './Organisation';

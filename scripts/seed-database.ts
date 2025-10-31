@@ -59,7 +59,7 @@ async function seedDatabase() {
 
     for (const perm of Object.values(Permission)) {
       await client.query(
-        `INSERT INTO permissions (name, description) VALUES ($1, $2) ON CONFLICT (name) DO NOTHING`,
+        `INSERT INTO permissions (id, name, description, "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, NOW(), NOW()) ON CONFLICT (name) DO NOTHING`,
         [perm, permissionDescriptions[perm as Permission] || '']
       );
     }
@@ -188,9 +188,9 @@ async function seedDatabase() {
     for (const role of roles) {
       // Insert role
       const roleResult = await client.query(`
-        INSERT INTO roles (name, description) 
-        VALUES ($1, $2)
-        ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description
+        INSERT INTO roles (id, name, description, "createdAt", "updatedAt") 
+        VALUES (gen_random_uuid(), $1, $2, NOW(), NOW())
+        ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description, "updatedAt" = NOW()
         RETURNING id
       `, [role.name, role.description]);
       const roleId = roleResult.rows[0].id;
@@ -202,8 +202,8 @@ async function seedDatabase() {
         if (permissionResult.rows.length > 0) {
           const permissionId = permissionResult.rows[0].id;
           await client.query(`
-            INSERT INTO role_permissions ("roleId", "permissionId") 
-            VALUES ($1, $2)
+            INSERT INTO role_permissions (id, "roleId", "permissionId", "createdAt", "updatedAt") 
+            VALUES (gen_random_uuid(), $1, $2, NOW(), NOW())
             ON CONFLICT ("roleId", "permissionId") DO NOTHING
           `, [roleId, permissionId]);
         }
@@ -218,15 +218,16 @@ async function seedDatabase() {
       const superAdminRoleId = superAdminRoleResult.rows[0].id;
       const hashedPassword = await bcrypt.hash('passworD12345#', 12);
       await client.query(`
-        INSERT INTO users (email, password, "firstName", "lastName", "roleId", "accountStatus", "has_changed_default_password")
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO users (id, email, password, "firstName", "lastName", "roleId", "accountStatus", "has_changed_default_password", "createdAt", "updatedAt")
+        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
         ON CONFLICT (email) DO UPDATE SET 
           password = EXCLUDED.password,
           "firstName" = EXCLUDED."firstName",
           "lastName" = EXCLUDED."lastName",
           "roleId" = EXCLUDED."roleId",
           "accountStatus" = EXCLUDED."accountStatus",
-          "has_changed_default_password" = EXCLUDED."has_changed_default_password"
+          "has_changed_default_password" = EXCLUDED."has_changed_default_password",
+          "updatedAt" = NOW()
       `, ['imeekwere15@gmail.com', hashedPassword, 'Ime', 'Ekwere', superAdminRoleId, 'active', true]);
       console.log('✅ Super admin user seeded');
     }
@@ -237,8 +238,8 @@ async function seedDatabase() {
       const adminRoleId = adminRoleResult.rows[0].id;
       const hashedPassword = await bcrypt.hash('admin123!@#', 12);
       await client.query(`
-        INSERT INTO users (email, password, "firstName", "lastName", "roleId", "accountStatus")
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO users (id, email, password, "firstName", "lastName", "roleId", "accountStatus", "createdAt", "updatedAt")
+        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW(), NOW())
         ON CONFLICT (email) DO NOTHING
       `, ['admin@primefrontier.com', hashedPassword, 'Admin', 'User', adminRoleId, 'active']);
       console.log('✅ Admin user seeded');
@@ -250,8 +251,8 @@ async function seedDatabase() {
       const managerRoleId = managerRoleResult.rows[0].id;
       const hashedPassword = await bcrypt.hash('manager123', 12);
       await client.query(`
-        INSERT INTO users (email, password, "firstName", "lastName", "roleId", "accountStatus")
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO users (id, email, password, "firstName", "lastName", "roleId", "accountStatus", "createdAt", "updatedAt")
+        VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW(), NOW())
         ON CONFLICT (email) DO NOTHING
       `, ['manager@primefrontier.com', hashedPassword, 'Project', 'Manager', managerRoleId, 'active']);
       console.log('✅ Manager user seeded');
@@ -275,13 +276,20 @@ async function seedDatabase() {
     const finalRoles = await client.query('SELECT COUNT(*) FROM roles');
     const finalUsers = await client.query('SELECT COUNT(*) FROM users');
     const finalPermissions = await client.query('SELECT COUNT(*) FROM permissions');
-    const finalSamples = await client.query('SELECT COUNT(*) FROM mining_samples');
+    
+    let samplesCount = 0;
+    try {
+      const finalSamples = await client.query('SELECT COUNT(*) FROM mining_samples');
+      samplesCount = finalSamples.rows[0].count;
+    } catch (error) {
+      // mining_samples table doesn't exist
+    }
 
     console.log('\n📈 Seeding Summary:');
     console.log(`   • ${finalRoles.rows[0].count} roles`);
     console.log(`   • ${finalUsers.rows[0].count} users`);
     console.log(`   • ${finalPermissions.rows[0].count} permissions`);
-    console.log(`   • ${finalSamples.rows[0].count} mining samples`);
+    console.log(`   • ${samplesCount} mining samples`);
 
     console.log('\n👤 Available Test Accounts:');
     console.log('   • Super Admin: imeekwere15@gmail.com / passworD12345#');
