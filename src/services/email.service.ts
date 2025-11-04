@@ -30,7 +30,7 @@ async function sendWelcomeTemplateEmail({ to, firstName, lastName, temporaryPass
   }
 }
 
-async function SendEmail({ to, subject, text, html }: { to: string, subject: string, text: string, html?: string }) {
+export async function SendEmail({ to, subject, text, html }: { to: string, subject: string, text: string, html?: string }) {
   // Use MailtrapClient for template-based sending if template_uuid and template_variables are provided
   const { MailtrapClient } = require("mailtrap");
   const client = new MailtrapClient({ token: TOKEN });

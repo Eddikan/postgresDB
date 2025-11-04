@@ -4,3 +4,4 @@ export { RoleDao, RoleWithPermissions, CreateRoleData, UpdateRoleData } from './
 export { PermissionDao, PermissionEntity, CreatePermissionData, UpdatePermissionData } from './PermissionDao';
 export { ProjectDao } from './ProjectDao';
 export { DrillingDao } from './DrillingDao';
+export { OrganisationDao, Organisation } from './OrganisationDao';

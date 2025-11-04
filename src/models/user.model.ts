@@ -24,6 +24,9 @@ export default class User extends Model {
   @Column(DataType.STRING)
   declare lastName?: string;
 
+  @Column(DataType.STRING)
+  declare phoneNumber?: string;
+
   @AllowNull(false)
   @Column(DataType.STRING)
   declare password: string;
@@ -35,6 +38,9 @@ export default class User extends Model {
   @ForeignKey(() => Role)
   @Column(DataType.UUID)
   declare roleId?: string;
+
+  @Column(DataType.UUID)
+  declare organisationId?: string;
 
   @Column(DataType.ENUM(...Object.values(FieldRole)))
   declare fieldRole?: FieldRole;

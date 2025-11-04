@@ -4,7 +4,7 @@ import fastifyCors from '@fastify/cors';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyJwt from '@fastify/jwt';
-import { authRoutes, userRoutes, projectRoutes, drillingRoutes, profileRoutes, roleRoutes, invitationRoutes, testEmailRoute, miningSamplesRoutes, twoFactorRoutes } from './routes';
+import { authRoutes, userRoutes, projectRoutes, drillingRoutes, profileRoutes, roleRoutes, invitationRoutes, testEmailRoute, miningSamplesRoutes, twoFactorRoutes, organisationRoutes } from './routes';
 import pool, { connectDatabase } from './config/database';
 import { initializeSequelize, sequelize } from './config/sequelize';
 import * as dotenv from 'dotenv';
@@ -97,6 +97,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await server.register(drillingRoutes, { prefix: '/drillings' });
   await server.register(miningSamplesRoutes, { prefix: '/' });
   await server.register(twoFactorRoutes, { prefix: '/2fa' });
+  await server.register(organisationRoutes, { prefix: '/organisation' });
   await testEmailRoute(server);
 
   // Health check
