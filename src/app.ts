@@ -100,7 +100,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   await testEmailRoute(server);
 
   // Health check
-  server.get('/health', async () => ({ status: 'ok' }));
+  server.get('/health', async () => ({ 
+    status: 'development server with real-time updates!', 
+    timestamp: new Date().toISOString() 
+  }));
 
   return server;
 }

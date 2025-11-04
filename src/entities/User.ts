@@ -42,7 +42,10 @@ export enum FieldRole {
   BD_TEAMS = 'BD Teams',
   COMMUNITY_RELATIONS_MANAGER = 'Community Relations Manager',
   EXECUTIVES = 'Executives',
-  INVESTORS = 'Investors'
+  INVESTORS = 'Investors',
+  DRILLER = 'driller',
+  GEOLOGIST = 'geologist',
+  MINER = 'miner'
 }
 
 // User interface for raw SQL operations
