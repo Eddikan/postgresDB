@@ -5,6 +5,7 @@ import { OrganisationDao } from '../dataaccess/OrganisationDao';
 import { DatabaseConnection } from '../datasource';
 import { EmailService } from '../services';
 import { CreateUserData, AccountStatus } from '../entities';
+import { config } from '../config';
 
 // Request payload interfaces
 interface OrganisationSetupPayload {
@@ -112,7 +113,7 @@ export async function organisationRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // 4. Create organisation
+        // 4. Create organisation without createdBy initially
         const newOrganisation = await organisationDao.createOrganisation({
           name: organisation.name,
           address: organisation.address,
@@ -130,6 +131,7 @@ export async function organisationRoutes(fastify: FastifyInstance) {
           lastName: primaryContact.lastName,
           phoneNumber: primaryContact.phoneNumber || '',
           password: hashedPassword,
+          accountStatus: AccountStatus.INACTIVE,
           organisationId: newOrganisation.id!,
           roleId: superAdminRole.id
         });
@@ -145,13 +147,19 @@ export async function organisationRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // 7. Prepare response (exclude sensitive data)
+        // 7. Update organisation with createdBy field now that user exists
+        await organisationDao.updateOrganisation(newOrganisation.id!, {
+          createdBy: newUser.id
+        });
+
+        // 8. Prepare response (exclude sensitive data)
         const responseData = {
           organisation: {
             id: newOrganisation.id,
             name: newOrganisation.name,
             address: newOrganisation.address,
             size: newOrganisation.size,
+            createdBy: newUser.id,
             createdAt: newOrganisation.createdAt
           },
           user: {
@@ -172,13 +180,21 @@ export async function organisationRoutes(fastify: FastifyInstance) {
           }
         };
 
-        // Send welcome email (implement this based on your email service)
+        // Send organization welcome email using Mailtrap template
         try {
-          const fullName = `${primaryContact.firstName} ${primaryContact.lastName}`;
-          await sendWelcomeEmail(newUser.email, fullName, tempPassword, newOrganisation.name!);
+          const loginUrl = `${config.FRONTEND_URL}/login` || 'https://your-app.com/login';
+          await EmailService.sendOrganisationWelcomeEmail(
+            newUser.email,
+            primaryContact.firstName,
+            primaryContact.lastName,
+            tempPassword,
+            loginUrl,
+            newOrganisation.name!,
+            newOrganisation.size!
+          );
         } catch (emailError) {
           // Log email error but don't fail the registration
-          console.warn('Failed to send welcome email:', emailError);
+          console.warn('Failed to send organization welcome email:', emailError);
         }
 
         return reply.status(201).send({
@@ -218,88 +234,5 @@ function generateTemporaryPassword(): string {
   return password.split('').sort(() => Math.random() - 0.5).join('');
 }
 
-// Welcome email function using EmailService
-async function sendWelcomeEmail(email: string, fullName: string, tempPassword: string, orgName: string): Promise<void> {
-  try {
-    // Split fullName into firstName and lastName
-    const nameParts = fullName.trim().split(' ');
-    const firstName = nameParts[0] || 'User';
-    const lastName = nameParts.slice(1).join(' ') || '';
-    
-    // Create a welcome email subject and content
-    const subject = `Welcome to ${orgName} - Your Organisation Setup is Complete!`;
-    
-    const text = `
-Hello ${fullName},
 
-Congratulations! Your organisation "${orgName}" has been successfully set up on Primefrontier.
-
-Your account has been created with the following credentials:
-Email: ${email}
-Temporary Password: ${tempPassword}
-
-IMPORTANT: Please log in and change your password as soon as possible for security.
-
-As the Super Administrator, you have full access to manage your organisation, invite team members, and configure system settings.
-
-Welcome to Primefrontier!
-
-Best regards,
-The Primefrontier Team
-    `;
-
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2c3e50;">Welcome to ${orgName}!</h2>
-        
-        <p>Hello <strong>${fullName}</strong>,</p>
-        
-        <p>🎉 <strong>Congratulations!</strong> Your organisation "<strong>${orgName}</strong>" has been successfully set up on Primefrontier.</p>
-        
-        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-          <h3 style="color: #495057; margin-top: 0;">Your Login Credentials</h3>
-          <p><strong>Email:</strong> ${email}</p>
-          <p><strong>Temporary Password:</strong> <code style="background-color: #e9ecef; padding: 2px 5px; border-radius: 3px; font-family: monospace;">${tempPassword}</code></p>
-        </div>
-        
-        <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <p><strong>🔒 IMPORTANT:</strong> Please log in and <strong>change your password</strong> as soon as possible for security.</p>
-        </div>
-        
-        <div style="background-color: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <h4 style="color: #155724; margin-top: 0;">As Super Administrator, you can:</h4>
-          <ul style="color: #155724; margin-bottom: 0;">
-            <li>Manage your organisation settings</li>
-            <li>Invite and manage team members</li>
-            <li>Configure system permissions</li>
-            <li>Access all organisation data and reports</li>
-          </ul>
-        </div>
-        
-        <p style="text-align: center; margin: 30px 0;">
-          <strong>Welcome to Primefrontier!</strong>
-        </p>
-        
-        <hr style="border: none; border-top: 1px solid #ecf0f1; margin: 30px 0;">
-        
-        <p style="font-size: 12px; color: #95a5a6;">
-          If you have any questions or need support, please contact our team.
-        </p>
-      </div>
-    `;
-
-    // Use EmailService to send the email
-    const emailSent = await EmailService.sendEmail(email, subject, text, html);
-    
-    if (emailSent) {
-      console.log(`✅ Welcome email sent successfully to ${email} for organisation: ${orgName}`);
-    } else {
-      console.warn(`⚠️ Failed to send welcome email to ${email} for organisation: ${orgName}`);
-    }
-    
-  } catch (error) {
-    console.error(`❌ Error sending welcome email to ${email}:`, error);
-    // Don't throw the error - we don't want to fail organisation creation if email fails
-  }
-}
 

@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { UserDao } from '../dataaccess';
+import { OrganisationDao } from '../dataaccess/OrganisationDao';
 import { databaseConnection } from '../datasource';
 import { Permission, authenticate, requireJWT } from '../middleware/auth-sql';
 import { config } from '../config/config';
@@ -31,8 +32,9 @@ interface ChangePasswordBody {
 }
 
 export async function authRoutes(fastify: FastifyInstance) {
-  // Initialize UserDao and TwoFactorService
+  // Initialize UserDao, OrganisationDao and TwoFactorService
   const userDao = new UserDao();
+  const organisationDao = new OrganisationDao();
   const twoFactorService = new TwoFactorService();
 
   // Login endpoint
@@ -344,6 +346,23 @@ export async function authRoutes(fastify: FastifyInstance) {
         return reply.code(404).send({ error: 'User not found' });
       }
 
+      // Get organisation details if user belongs to one
+      let organisation = null;
+      if (user.organisationId) {
+        const orgDetails = await organisationDao.getOrganisationById(user.organisationId);
+        if (orgDetails) {
+          organisation = {
+            id: orgDetails.id,
+            name: orgDetails.name,
+            address: orgDetails.address,
+            size: orgDetails.size,
+            createdBy: orgDetails.createdBy,
+            createdAt: orgDetails.createdAt,
+            updatedAt: orgDetails.updatedAt
+          };
+        }
+      }
+
       // Return user data (without password)
       const userResponse = {
         id: user.id,
@@ -362,7 +381,8 @@ export async function authRoutes(fastify: FastifyInstance) {
           id: user.roleId,
           name: user.roleName,
           permissions: user.rolePermissions?.filter((p: any) => p !== null) || []
-        } : null
+        } : null,
+        organisation
       };
 
       reply.send({

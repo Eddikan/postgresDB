@@ -4,7 +4,7 @@ import fastifyCors from '@fastify/cors';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyJwt from '@fastify/jwt';
-import { authRoutes, userRoutes, projectRoutes, drillingRoutes, profileRoutes, roleRoutes, invitationRoutes, testEmailRoute, miningSamplesRoutes, twoFactorRoutes, organisationRoutes } from './routes';
+import { authRoutes, userRoutes, projectRoutes, drillingRoutes, profileRoutes, roleRoutes, invitationRoutes, testEmailRoute, miningSamplesRoutes, twoFactorRoutes, organisationRoutes, fieldRoleRoutes } from './routes';
 import pool, { connectDatabase } from './config/database';
 import { initializeSequelize, sequelize } from './config/sequelize';
 import * as dotenv from 'dotenv';
@@ -92,6 +92,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await server.register(profileRoutes, { prefix: '/' });
   await server.register(roleRoutes, { prefix: '/' });
   await server.register(invitationRoutes, { prefix: '/invitations' });
+  await server.register(fieldRoleRoutes, { prefix: '/field-roles' });
   await server.register(userRoutes, { prefix: '/users' });
   await server.register(projectRoutes, { prefix: '/projects' });
   await server.register(drillingRoutes, { prefix: '/drillings' });

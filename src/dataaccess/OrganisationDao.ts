@@ -6,6 +6,7 @@ export interface Organisation {
   name: string;
   address?: string;
   size?: number;
+  createdBy?: string; // UUID of the user who created this organisation
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -19,7 +20,8 @@ export class OrganisationDao extends SequelizeBaseDao {
     const org = await OrganisationModel.create({
       name: organisation.name,
       address: organisation.address,
-      size: organisation.size
+      size: organisation.size,
+      createdBy: organisation.createdBy
     });
 
     return {
@@ -27,6 +29,7 @@ export class OrganisationDao extends SequelizeBaseDao {
       name: org.name,
       address: org.address,
       size: org.size,
+      createdBy: org.createdBy,
       createdAt: org.createdAt,
       updatedAt: org.updatedAt
     };
@@ -39,6 +42,7 @@ export class OrganisationDao extends SequelizeBaseDao {
       name: org.name,
       address: org.address,
       size: org.size,
+      createdBy: org.createdBy,
       createdAt: org.createdAt,
       updatedAt: org.updatedAt
     } : null;
@@ -51,6 +55,7 @@ export class OrganisationDao extends SequelizeBaseDao {
       name: org.name,
       address: org.address,
       size: org.size,
+      createdBy: org.createdBy,
       createdAt: org.createdAt,
       updatedAt: org.updatedAt
     } : null;

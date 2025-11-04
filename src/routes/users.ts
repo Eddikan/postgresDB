@@ -1,14 +1,27 @@
 import { FastifyInstance } from 'fastify';
 import { UserDao } from '../dataaccess';
+import { OrganisationDao } from '../dataaccess/OrganisationDao';
 import { DatabaseConnection } from '../datasource';
 import { authenticate, requirePermission, Permission } from '../middleware';
 import { requireActiveAccount } from '../middleware/account-status';
 import { AccountStatus } from '../entities';
 
 export async function userRoutes(fastify: FastifyInstance) {
-  // Initialize DAO
+  // Initialize DAOs
   const database = new DatabaseConnection();
   const userDao = new UserDao();
+  const organisationDao = new OrganisationDao();
+
+  // Helper function to get organization details
+  const getOrganizationDetails = async (organisationId: string | null) => {
+    if (!organisationId) return null;
+    
+    const organisation = await organisationDao.getOrganisationById(organisationId);
+    return organisation ? {
+      id: organisation.id,
+      name: organisation.name
+    } : null;
+  };
 
     /**
      * POST /users
@@ -116,20 +129,25 @@ export async function userRoutes(fastify: FastifyInstance) {
       // Get users with pagination
       const result = await userDao.getUsers(queryOptions);
 
-      // Remove sensitive information
-      const sanitizedUsers = result.users.map(user => ({
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        accountStatus: user.accountStatus,
-        twoFactorEnabled: user.twoFactorEnabled,
-        lastLogin: user.lastLogin,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-        roleId: user.roleId,
-        roleName: user.roleName,
-        rolePermissions: user.rolePermissions
+      // Remove sensitive information and add organization details
+      const sanitizedUsers = await Promise.all(result.users.map(async (user) => {
+        const organization = await getOrganizationDetails(user.organisationId || null);
+        
+        return {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          accountStatus: user.accountStatus,
+          twoFactorEnabled: user.twoFactorEnabled,
+          lastLogin: user.lastLogin,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+          roleId: user.roleId,
+          roleName: user.roleName,
+          rolePermissions: user.rolePermissions,
+          organisation: organization
+        };
       }));
 
       return reply.status(200).send({
@@ -183,6 +201,9 @@ export async function userRoutes(fastify: FastifyInstance) {
         });
       }
 
+      // Get organization details
+      const organization = await getOrganizationDetails(user.organisationId || null);
+
       // Remove sensitive information
       const sanitizedUser = {
         id: user.id,
@@ -196,7 +217,8 @@ export async function userRoutes(fastify: FastifyInstance) {
         updatedAt: user.updatedAt,
         roleId: user.roleId,
         roleName: user.roleName,
-        rolePermissions: user.rolePermissions
+        rolePermissions: user.rolePermissions,
+        organisation: organization
       };
 
       return reply.status(200).send({
@@ -272,6 +294,9 @@ export async function userRoutes(fastify: FastifyInstance) {
       // Get updated user with role information
       const user = await userDao.getUserById(id);
 
+      // Get organization details
+      const organization = await getOrganizationDetails(user!.organisationId || null);
+
       // Remove sensitive information
       const sanitizedUser = {
         id: user!.id,
@@ -285,7 +310,8 @@ export async function userRoutes(fastify: FastifyInstance) {
         updatedAt: user!.updatedAt,
         roleId: user!.roleId,
         roleName: user!.roleName,
-        rolePermissions: user!.rolePermissions
+        rolePermissions: user!.rolePermissions,
+        organisation: organization
       };
 
       return reply.status(200).send({

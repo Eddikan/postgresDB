@@ -4,6 +4,7 @@ export interface Organisation {
   name: string;
   address?: string;
   size?: number;
+  createdBy?: string; // UUID of the user who created this organisation
   createdAt: Date;
   updatedAt: Date;
 }
@@ -13,6 +14,7 @@ export interface CreateOrganisationData {
   name: string;
   address?: string;
   size?: number;
+  createdBy?: string; // UUID of the user who created this organisation
 }
 
 // Organisation update interface (all fields optional except id)
@@ -21,4 +23,5 @@ export interface UpdateOrganisationData {
   name?: string;
   address?: string;
   size?: number;
+  createdBy?: string;
 }

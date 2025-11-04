@@ -39,6 +39,7 @@ export class UserDao extends SequelizeBaseDao {
       password: user.password,
       accountStatus: user.accountStatus,
       roleId: user.roleId,
+      organisationId: user.organisationId,
       twoFactorEnabled: user.twoFactorEnabled,
       twoFactorSecret: user.twoFactorSecret,
       twoFactorType: user.twoFactorType,
@@ -85,6 +86,7 @@ export class UserDao extends SequelizeBaseDao {
       password: user.password,
       accountStatus: user.accountStatus,
       roleId: user.roleId,
+      organisationId: user.organisationId,
       twoFactorEnabled: user.twoFactorEnabled,
       twoFactorSecret: user.twoFactorSecret,
       twoFactorType: user.twoFactorType,
@@ -232,6 +234,7 @@ export class UserDao extends SequelizeBaseDao {
       password: user.password,
       accountStatus: user.accountStatus,
       roleId: user.roleId,
+      organisationId: user.organisationId,
       twoFactorEnabled: user.twoFactorEnabled,
       twoFactorSecret: user.twoFactorSecret,
       twoFactorType: user.twoFactorType,
@@ -321,6 +324,7 @@ export class UserDao extends SequelizeBaseDao {
       password: user.password,
       accountStatus: user.accountStatus,
       roleId: user.roleId,
+      organisationId: user.organisationId,
       twoFactorEnabled: user.twoFactorEnabled,
       twoFactorSecret: user.twoFactorSecret,
       twoFactorType: user.twoFactorType,
@@ -374,6 +378,7 @@ export class UserDao extends SequelizeBaseDao {
     lastName: string;
     phoneNumber: string;
     password: string;
+    accountStatus?: string;
     organisationId: string;
     roleId: string;
   }): Promise<UserWithRole | null> {
@@ -385,7 +390,7 @@ export class UserDao extends SequelizeBaseDao {
       password: userData.password,
       organisationId: userData.organisationId,
       roleId: userData.roleId,
-      accountStatus: 'active',
+      accountStatus: userData.accountStatus || 'active',
       has_changed_default_password: false
     });
 

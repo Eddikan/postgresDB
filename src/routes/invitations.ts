@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import bcrypt from 'bcrypt';
 import { UserDao } from '../dataaccess';
+import { OrganisationDao } from '../dataaccess/OrganisationDao';
 import { DatabaseConnection } from '../datasource';
 import { EmailService } from '../services';
 import { authenticate, requirePermission, Permission } from '../middleware';
@@ -15,6 +16,7 @@ export async function invitationRoutes(fastify: FastifyInstance) {
   // Initialize DAOs
   const database = new DatabaseConnection();
   const userDao = new UserDao();
+  const organisationDao = new OrganisationDao();
 
   /**
    * POST /api/invitations/invite
@@ -55,12 +57,25 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         });
       }
 
+      // Get the inviting user's organisation name for the email
+      const invitingUser = request.userProfile!;
+      let organisationName = "your organisation";
+      
+      // Get the full user details to access organisationId
+      const fullUserDetails = await userDao.getUserById(invitingUser.id);
+      if (fullUserDetails?.organisationId) {
+        const organisation = await organisationDao.getOrganisationById(fullUserDetails.organisationId);
+        if (organisation) {
+          organisationName = organisation.name;
+        }
+      }
+
       // Generate secure password and invitation token
       const temporaryPassword = EmailService.generateSecurePassword();
       const invitationToken = EmailService.generateInvitationToken();
       const passwordHash = await bcrypt.hash(temporaryPassword, 12);
 
-      // Create user with inactive status
+      // Create user with inactive status - inherit organisation from inviting user
       const userData: CreateUserData = {
         email,
         firstName,
@@ -71,7 +86,8 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         fieldRole: fieldRole as FieldRole,
         twoFactorEnabled: false,
         invitedBy: request.userProfile!.id,  // Current authenticated user
-        invitedAt: new Date()                // Current timestamp
+        invitedAt: new Date(),               // Current timestamp
+        organisationId: fullUserDetails?.organisationId // Inherit organisation from inviting user
       };
       const newUser = await userDao.createUser(userData);
 
@@ -89,7 +105,8 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         lastName,
         temporaryPassword,
         invitationToken,
-        loginUrl
+        loginUrl,
+        organisationName
       );
 
       return reply.status(201).send({
@@ -229,6 +246,17 @@ export async function invitationRoutes(fastify: FastifyInstance) {
 
       const loginUrl = `${origin}/${config.FRONTEND_LOGIN_URL}`;
 
+      // Get organisation name for resend email
+      let organisationName = "your organisation";
+      const resendingUser = request.userProfile!;
+      const fullResendingUserDetails = await userDao.getUserById(resendingUser.id);
+      if (fullResendingUserDetails?.organisationId) {
+        const organisation = await organisationDao.getOrganisationById(fullResendingUserDetails.organisationId);
+        if (organisation) {
+          organisationName = organisation.name;
+        }
+      }
+
       // Send new invitation email
       await EmailService.sendUserInvitationEmail(
         user.email,
@@ -236,7 +264,8 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         user.lastName || '',
         temporaryPassword,
         invitationToken,
-        loginUrl
+        loginUrl,
+        organisationName
       );
 
       return reply.status(200).send({

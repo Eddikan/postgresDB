@@ -22,6 +22,9 @@ export default class Organisation extends Model {
   @Column(DataType.INTEGER)
   declare size?: number;
 
+  @Column(DataType.UUID)
+  declare createdBy?: string;
+
   @CreatedAt
   declare createdAt: Date;
 
