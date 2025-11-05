@@ -4,7 +4,8 @@ import { UserDao, RoleDao } from '../dataaccess';
 import { OrganisationDao } from '../dataaccess/OrganisationDao';
 import { DatabaseConnection } from '../datasource';
 import { EmailService } from '../services';
-import { CreateUserData, AccountStatus } from '../entities';
+import { CreateUserData, AccountStatus, User, Organisation } from '../entities';
+import { authenticate, requirePermission, Permission, requireAdmin } from '../middleware';
 import { config } from '../config';
 
 // Request payload interfaces
@@ -20,6 +21,12 @@ interface OrganisationSetupPayload {
     email: string;
     phoneNumber?: string;
   };
+}
+
+interface UpdateOrganisationPayload {
+  name?: string;
+  address?: string;
+  size?: number;
 }
 
 // Fastify schema validation
@@ -212,6 +219,198 @@ export async function organisationRoutes(fastify: FastifyInstance) {
       }
     }
   );
+
+  /**
+   * GET /organisation - List all organisations (Admin only)
+   * Auth required: Yes
+   * Permissions: Admin access required
+   */
+  fastify.get('/', {
+    preHandler: [authenticate, requireAdmin]
+  }, async (request, reply) => {
+    try {
+      const organisations = await organisationDao.getAllOrganisations();
+
+      return reply.send({
+        organisations
+      });
+
+    } catch (error: any) {
+      fastify.log.error('List organisations error:', error);
+      return reply.code(500).send({
+        error: 'Failed to retrieve organisations'
+      });
+    }
+  });
+
+  /**
+   * GET /organisation/:id - Get organisation details
+   * Auth required: Yes
+   */
+  fastify.get<{
+    Params: {
+      id: string;
+    };
+  }>('/:id', {
+    preHandler: [authenticate]
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params;
+
+      const organisation = await organisationDao.getOrganisationById(id);
+      if (!organisation) {
+        return reply.code(404).send({
+          error: 'Organisation not found'
+        });
+      }
+
+      return reply.send({
+        organisation
+      });
+
+    } catch (error: any) {
+      fastify.log.error('Get organisation error:', error);
+      return reply.code(500).send({
+        error: 'Failed to retrieve organisation'
+      });
+    }
+  });
+
+  /**
+   * PUT /organisation/:id - Update organisation
+   * Auth required: Yes
+   * Permissions: Admin access required
+   */
+  fastify.put<{
+    Params: {
+      id: string;
+    };
+    Body: UpdateOrganisationPayload;
+  }>('/:id', {
+    preHandler: [authenticate, requireAdmin],
+    schema: {
+      body: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', minLength: 1, maxLength: 255 },
+          address: { type: 'string', maxLength: 1000 },
+          size: { type: 'number', minimum: 1, maximum: 100000 }
+        },
+        additionalProperties: false
+      }
+    }
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params;
+      const { name, address, size } = request.body;
+
+      // Check if organisation exists
+      const existingOrganisation = await organisationDao.getOrganisationById(id);
+      if (!existingOrganisation) {
+        return reply.code(404).send({
+          error: 'Organisation not found'
+        });
+      }
+
+      // Check if name already exists (if being updated)
+      if (name && name !== existingOrganisation.name) {
+        const nameExists = await organisationDao.getOrganisationByName(name);
+        if (nameExists) {
+          return reply.code(409).send({
+            error: 'Organisation name already exists',
+            message: `An organisation with the name "${name}" already exists.`
+          });
+        }
+      }
+
+      // Build update data
+      const updateData: any = {};
+      if (name !== undefined) updateData.name = name;
+      if (address !== undefined) updateData.address = address;
+      if (size !== undefined) updateData.size = size;
+
+      if (Object.keys(updateData).length === 0) {
+        return reply.code(400).send({
+          error: 'No update data provided'
+        });
+      }
+
+      // Update organisation
+      const updatedOrganisation = await organisationDao.updateOrganisation(id, updateData);
+      
+      return reply.send({
+        message: 'Organisation updated successfully',
+        organisation: updatedOrganisation
+      });
+
+    } catch (error: any) {
+      fastify.log.error('Update organisation error:', error);
+      return reply.code(500).send({
+        error: 'Failed to update organisation'
+      });
+    }
+  });
+
+  /**
+   * DELETE /organisation/:id - Delete organisation
+   * Auth required: Yes
+   * Permissions: Super Admin access required
+   */
+  fastify.delete<{
+    Params: {
+      id: string;
+    };
+  }>('/:id', {
+    preHandler: [authenticate, requirePermission(Permission.SYSTEM_MANAGE_USERS)]
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params;
+
+      // Check if organisation exists
+      const existingOrganisation = await organisationDao.getOrganisationById(id);
+      if (!existingOrganisation) {
+        return reply.code(404).send({
+          error: 'Organisation not found'
+        });
+      }
+
+      // Check if organisation has any users (prevent deletion if users exist)
+      const organisationUsers = await userDao.getUsersByOrganisationId(id);
+      if (organisationUsers.length > 0) {
+        return reply.code(409).send({
+          error: 'Cannot delete organisation with existing users',
+          message: `This organisation has ${organisationUsers.length} user(s). Please remove all users before deleting the organisation.`
+        });
+      }
+
+      // Delete organisation
+      const deleted = await organisationDao.deleteOrganisation(id);
+      if (!deleted) {
+        return reply.code(500).send({
+          error: 'Failed to delete organisation'
+        });
+      }
+
+      return reply.send({
+        message: 'Organisation deleted successfully'
+      });
+
+    } catch (error: any) {
+      fastify.log.error('Delete organisation error:', error);
+      
+      // Handle foreign key constraint errors
+      if (error.code === '23503') {
+        return reply.code(409).send({
+          error: 'Cannot delete organisation',
+          message: 'This organisation has associated records that must be removed first.'
+        });
+      }
+      
+      return reply.code(500).send({
+        error: 'Failed to delete organisation'
+      });
+    }
+  });
 }
 
 // Helper function to generate temporary password

@@ -79,6 +79,22 @@ export class OrganisationDao extends SequelizeBaseDao {
     return deletedCount > 0;
   }
 
+  async getAllOrganisations(): Promise<Organisation[]> {
+    const orgs = await OrganisationModel.findAll({
+      order: [['createdAt', 'DESC']]
+    });
+    
+    return orgs.map(org => ({
+      id: org.id,
+      name: org.name,
+      address: org.address,
+      size: org.size,
+      createdBy: org.createdBy,
+      createdAt: org.createdAt,
+      updatedAt: org.updatedAt
+    }));
+  }
+
   async getOrganisationUsers(organisationId: string): Promise<any[]> {
     // This will be implemented when User model has the organisation relationship
     // For now, return empty array

@@ -2,6 +2,7 @@ import { SequelizeBaseDao } from './SequelizeBaseDao';
 import { User, CreateUserData, UpdateUserData } from '../entities';
 import UserModel from '../models/user.model';
 import RoleModel from '../models/role.model';
+import { PermissionDao } from './PermissionDao';
 import { Op } from 'sequelize';
 
 export interface UserWithRole extends User {
@@ -30,7 +31,20 @@ export class UserDao extends SequelizeBaseDao {
       return null;
     }
 
-    // For now, return basic user data - we'll need to set up proper associations for role permissions
+    // Get role permissions if user has a role
+    let rolePermissions: string[] = [];
+    let roleName: string | undefined;
+    
+    if (user.roleId) {
+      const permissionDao = new PermissionDao();
+      const permissions = await permissionDao.getPermissionsByRoleId(user.roleId);
+      rolePermissions = permissions.map(permission => permission.name);
+      
+      // Also get role name
+      const role = await RoleModel.findByPk(user.roleId);
+      roleName = role?.name;
+    }
+
     const userWithRole: UserWithRole = {
       id: user.id,
       email: user.email,
@@ -56,8 +70,8 @@ export class UserDao extends SequelizeBaseDao {
       passwordChangedAt: user.passwordChangedAt,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      // roleName: (user as any).role?.name, // Will work once associations are set up
-      // rolePermissions: [] // Will need proper association setup
+      roleName: roleName,
+      rolePermissions: rolePermissions
     };
 
     return userWithRole;
@@ -75,6 +89,20 @@ export class UserDao extends SequelizeBaseDao {
 
     if (!user) {
       return null;
+    }
+
+    // Get role permissions if user has a role
+    let rolePermissions: string[] = [];
+    let roleName: string | undefined;
+    
+    if (user.roleId) {
+      const permissionDao = new PermissionDao();
+      const permissions = await permissionDao.getPermissionsByRoleId(user.roleId);
+      rolePermissions = permissions.map(permission => permission.name);
+      
+      // Also get role name
+      const role = await RoleModel.findByPk(user.roleId);
+      roleName = role?.name;
     }
 
     // Convert Sequelize model to UserWithRole interface
@@ -103,8 +131,8 @@ export class UserDao extends SequelizeBaseDao {
       passwordChangedAt: user.passwordChangedAt,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      // roleName: (user as any).role?.name, // Will work once associations are set up
-      // rolePermissions: [] // Will need proper association setup
+      roleName: roleName,
+      rolePermissions: rolePermissions
     };
 
     return userWithRole;
@@ -315,6 +343,20 @@ export class UserDao extends SequelizeBaseDao {
       return null;
     }
 
+    // Get role permissions if user has a role
+    let rolePermissions: string[] = [];
+    let roleName: string | undefined;
+    
+    if (user.roleId) {
+      const permissionDao = new PermissionDao();
+      const permissions = await permissionDao.getPermissionsByRoleId(user.roleId);
+      rolePermissions = permissions.map(permission => permission.name);
+      
+      // Also get role name
+      const role = await RoleModel.findByPk(user.roleId);
+      roleName = role?.name;
+    }
+
     // Convert to UserWithRole interface
     const userWithRole: UserWithRole = {
       id: user.id,
@@ -341,7 +383,8 @@ export class UserDao extends SequelizeBaseDao {
       passwordChangedAt: user.passwordChangedAt,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      // roleName and rolePermissions will be available once associations are set up
+      roleName: roleName,
+      rolePermissions: rolePermissions
     };
 
     return userWithRole;
@@ -426,6 +469,51 @@ export class UserDao extends SequelizeBaseDao {
         model: RoleModel,
         attributes: ['name', 'description']
       }]
+    });
+
+    return users.map(user => ({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      phoneNumber: user.phoneNumber,
+      password: user.password,
+      accountStatus: user.accountStatus,
+      roleId: user.roleId,
+      organisationId: user.organisationId,
+      twoFactorEnabled: user.twoFactorEnabled,
+      twoFactorSecret: user.twoFactorSecret,
+      twoFactorType: user.twoFactorType,
+      twoFactorCode: user.twoFactorCode,
+      twoFactorCodeExpires: user.twoFactorCodeExpires,
+      twoFactorTarget: user.twoFactorTarget,
+      lastLogin: user.lastLogin,
+      invitationToken: user.invitationToken,
+      invitationExpires: user.invitationExpires,
+      invitedBy: user.invitedBy,
+      invitedAt: user.invitedAt,
+      activatedAt: user.activatedAt,
+      passwordChangedAt: user.passwordChangedAt,
+      has_changed_default_password: user.has_changed_default_password,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      roleName: (user as any).Role?.name
+    }));
+  }
+
+  /**
+   * Get users by organisation ID
+   * @param organisationId Organisation ID
+   * @returns Array of users
+   */
+  async getUsersByOrganisationId(organisationId: string): Promise<User[]> {
+    const users = await UserModel.findAll({
+      where: { organisationId },
+      include: [{
+        model: RoleModel,
+        attributes: ['name', 'description']
+      }],
+      order: [['createdAt', 'DESC']]
     });
 
     return users.map(user => ({
