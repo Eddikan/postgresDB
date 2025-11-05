@@ -7,6 +7,7 @@ export { roleRoutes } from './roles';
 export { invitationRoutes } from './invitations';
 export { organisationRoutes } from './organisation';
 export { fieldRoleRoutes } from './fieldRoles';
+export { publicRoutes } from './public';
 
 export { miningSamplesRoutes } from './mining_samples';
 export { twoFactorRoutes } from './2faRoutes';

@@ -20,6 +20,7 @@ export {
 // Project exports
 export { 
   Project, 
+  ProjectStatus,
   CreateProjectData, 
   UpdateProjectData 
 } from './Project';
