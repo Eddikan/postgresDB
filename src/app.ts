@@ -4,7 +4,7 @@ import fastifyCors from '@fastify/cors';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyJwt from '@fastify/jwt';
-import { authRoutes, userRoutes, projectRoutes, drillingRoutes, drillHoleRoutes, mediaRoutes, profileRoutes, roleRoutes, invitationRoutes, testEmailRoute, miningSamplesRoutes, twoFactorRoutes, organisationRoutes, fieldRoleRoutes, publicRoutes } from './routes';
+import { authRoutes, userRoutes, projectRoutes, drillingRoutes, drillHoleRoutes, mediaRoutes, profileRoutes, roleRoutes, invitationRoutes, miningSamplesRoutes, twoFactorRoutes, organisationRoutes, fieldRoleRoutes, publicRoutes } from './routes';
 import pool, { connectDatabase } from './config/database';
 import { initializeSequelize, sequelize } from './config/sequelize';
 import * as dotenv from 'dotenv';
@@ -111,7 +111,6 @@ export async function buildApp(): Promise<FastifyInstance> {
   
   // Public routes (no authentication required)
   await server.register(publicRoutes, { prefix: '/public' });
-  await testEmailRoute(server);
 
   // Health check
   server.get('/health', async () => ({ 

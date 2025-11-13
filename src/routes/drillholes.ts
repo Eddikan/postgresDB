@@ -279,9 +279,10 @@ export async function drillHoleRoutes(fastify: FastifyInstance) {
         photos: photosJson
       });
 
-      // Parse the photos JSON back to array for response
+      // Parse the photos JSON back to array and fetch full media objects for response
       const responseData = newDrillHole.toJSON();
-      responseData.photos = safeParsePhotos(responseData.photos);
+      const photoIds = safeParsePhotos(responseData.photos);
+      responseData.photos = await fetchMediaObjects(photoIds);
 
       Logger.info('Drill hole created successfully');
       return reply.status(201).send({
@@ -767,9 +768,10 @@ export async function drillHoleRoutes(fastify: FastifyInstance) {
         photos: JSON.stringify(allPhotos)
       });
 
-      // Get updated data for response
+      // Get updated data for response with full media objects
       const updatedData = drillHole.toJSON();
-      updatedData.photos = safeParsePhotos(updatedData.photos);
+      const photoIds = safeParsePhotos(updatedData.photos);
+      updatedData.photos = await fetchMediaObjects(photoIds);
 
       return reply.status(200).send({
         message: 'Photos added successfully',
@@ -831,9 +833,10 @@ export async function drillHoleRoutes(fastify: FastifyInstance) {
         photos: JSON.stringify(remainingPhotos)
       });
 
-      // Get updated data for response
+      // Get updated data for response with full media objects
       const updatedData = drillHole.toJSON();
-      updatedData.photos = safeParsePhotos(updatedData.photos);
+      const photoIds = safeParsePhotos(updatedData.photos);
+      updatedData.photos = await fetchMediaObjects(photoIds);
 
       return reply.status(200).send({
         message: 'Photos removed successfully',

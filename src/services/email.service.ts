@@ -19,8 +19,8 @@ async function sendWelcomeTemplateEmail({ to, firstName, lastName, temporaryPass
       template_uuid: "bd3a5ff8-e72c-4557-9862-1328c4f6d3f1",
       template_variables: {
         email: to,
-        firstName, 
-        lastName, 
+        firstName,
+        lastName,
         temporaryPassword,
         loginUrl: "Test_Loginurl",
         organisationName: organisationName || "Primefrontier"
@@ -41,13 +41,13 @@ async function sendOrganisationWelcomeTemplateEmail({ to, firstName, lastName, t
       template_uuid: "beffbe99-9264-4281-9d86-be28d525b891",
       template_variables: {
         email: to,
-        firstName, 
-        lastName, 
+        firstName,
+        lastName,
         temporaryPassword,
         loginUrl,
         organisationName,
         organisationSize
-        
+
       },
     });
     console.log("Organisation welcome email sent successfully:", response);
@@ -103,90 +103,6 @@ export async function SendEmail({ to, subject, text, html }: { to: string, subje
   }
 }
 export class EmailService {
-  private static transporter: nodemailer.Transporter;
-
-  /**
-   * Initialize the email transporter
-   * Note: Configure your SMTP settings in environment variables
-   */
-  static initializeTransporter(): void {
-    // Use Mailtrap for development/testing
-    if (config.NODE_ENV === 'development' || config.NODE_ENV === 'test') {
-      this.transporter = nodemailer.createTransport(
-        MailtrapTransport({
-          token: config.MAILTRAP_TOKEN,
-        })
-      );
-    } else {
-      this.transporter = nodemailer.createTransport({
-        host: config.SMTP_HOST,
-        port: config.SMTP_PORT,
-        secure: config.SMTP_PORT === 465, // true for 465, false for other ports
-        auth: {
-          user: config.SMTP_USER,
-          pass: config.SMTP_PASS,
-        },
-      });
-    }
-  }
-  /**
-   * Send a sample email to the Super Admin using Mailtrap
-   */
-  static async sendSampleEmailToSuperAdmin(): Promise<boolean> {
-    const to = config.DEFAULT_ADMIN_EMAIL;
-    const subject = 'Mailtrap Integration Test';
-    const text = 'Congrats! This is a test email sent via Mailtrap integration.';
-    const html = '<h2>Mailtrap Integration Test</h2><p>Congrats! This is a test email sent via <strong>Mailtrap</strong> integration.</p>';
-    return SendEmail({ to, subject, text, html });
-
-  }
-
-  /**
-   * Send a generic email
-   */
-  static async sendEmail(
-    to: string,
-    subject: string,
-    text: string,
-    html?: string
-  ): Promise<boolean> {
-    try {
-      // Create fresh transport each time (like working SendEmail function)
-      const transport = Nodemailer.createTransport(
-        MailtrapTransport({
-          token: TOKEN,
-        })
-      );
-
-      const sender = {
-        email: config.FROM_EMAIL || "hello@ime.com.ng",
-        name: "Primefrontier Test"
-      };
-
-      const mailOptions = {
-        from: { address: sender.email, name: sender.name },
-        to,
-        subject,
-        text,
-        html: html || text,
-        category: "Integration Test",
-      };
-
-      // For development - log email content instead of sending
-      if (config.NODE_ENV === 'development') {
-        console.log('📧 Email would be sent:');
-        console.log(mailOptions);
-        return true;
-      }
-
-      const result = await transport.sendMail(mailOptions);
-      console.log('Email sent successfully:', result);
-      return true;
-    } catch (error) {
-      console.error('Failed to send email:', error);
-      return false;
-    }
-  }
 
   /**
    * Generate secure random password
@@ -252,13 +168,13 @@ export class EmailService {
     organisationSize: number
   ): Promise<MailtrapResponse | undefined> {
     try {
-      const res = await sendOrganisationWelcomeTemplateEmail({ 
-        to: email, 
-        firstName, 
-        lastName, 
-        temporaryPassword, 
-        loginUrl, 
-        organisationName ,
+      const res = await sendOrganisationWelcomeTemplateEmail({
+        to: email,
+        firstName,
+        lastName,
+        temporaryPassword,
+        loginUrl,
+        organisationName,
         organisationSize
       });
       return res;
@@ -268,46 +184,7 @@ export class EmailService {
     }
   }
 
-  /**
-   * Send password reset email
-   */
-  static async sendPasswordResetEmail(
-    email: string,
-    resetToken: string
-  ): Promise<boolean> {
-    const resetUrl = `${config.FRONTEND_URL}/reset-password/${resetToken}`;
-    const subject = 'Password Reset Request - Primefrontier';
-    const text = `
-Hello,
 
-You have requested to reset your password for your Primefrontier account.
-
-Please click the link below to reset your password:
-${resetUrl}
-
-This link will expire in 1 hour for security purposes.
-
-If you did not request a password reset, please ignore this email.
-
-Best regards,
-The Primefrontier Team
-    `;
-
-    const html = `
-      <h2>Password Reset Request</h2>
-      <p>You have requested to reset your password for your Primefrontier account.</p>
-      
-      <p><a href="${resetUrl}" style="background: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Your Password</a></p>
-      
-      <p><strong>Note:</strong> This link will expire in 1 hour for security purposes.</p>
-      
-      <p>If you did not request a password reset, please ignore this email.</p>
-      
-      <p>Best regards,<br>The Primefrontier Team</p>
-    `;
-
-    return SendEmail({ to: email, subject, text, html });
-  }
 
   /**
    * Send 2FA code via email
@@ -336,7 +213,7 @@ The Primefrontier Team
       <p>Best regards,<br>The Primefrontier Team</p>
     `;
 
-    return SendEmail({ to:email, subject, text, html });
+    return SendEmail({ to: email, subject, text, html });
   }
 }
 

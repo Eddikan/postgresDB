@@ -14,4 +14,3 @@ export { publicRoutes } from './public';
 export { miningSamplesRoutes } from './mining_samples';
 export { twoFactorRoutes } from './2faRoutes';
 
-export { default as testEmailRoute } from './test-email';
