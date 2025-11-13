@@ -2,16 +2,9 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authenticate } from '../middleware';
 import { S3Service } from '../services/S3Service';
 import { Logger } from '../utils/Logger';
-import crypto from 'crypto';
+import Media, { MediaType } from '../models/media.model';
 import formidable from 'formidable';
 import fs from 'fs';
-
-/**
- * Media type enum for organizing uploads
- */
-export enum MediaType {
-  DRILL_HOLE = 'DRILL_HOLE'
-}
 
 /**
  * Media upload routes - Handle file uploads separately from form data
@@ -112,6 +105,14 @@ export async function mediaRoutes(fastify: FastifyInstance) {
         });
       }
 
+      // Get authenticated user
+      const user = request.userProfile;
+      if (!user || !user.organisationId) {
+        return reply.status(403).send({
+          error: 'User organisation not found'
+        });
+      }
+
       // Upload to S3
       Logger.info('Uploading to S3...');
       const uploadResult = await s3Service.uploadFile(
@@ -120,11 +121,22 @@ export async function mediaRoutes(fastify: FastifyInstance) {
         file.mimetype || 'image/jpeg',
         'drill-holes'
       );
-
-      // Generate a unique media ID
-      const mediaId = crypto.randomUUID();
       
       Logger.info(`Upload successful: ${uploadResult.url}`);
+
+      // Save media record to database
+      const mediaRecord = await Media.create({
+        url: uploadResult.url,
+        type: mediaType as MediaType,
+        filename: file.originalFilename || 'unknown.jpg',
+        mimetype: file.mimetype || 'image/jpeg',
+        size: file.size,
+        s3Key: uploadResult.key,
+        uploadedBy: user.id,
+        organisationId: user.organisationId
+      });
+
+      Logger.info(`Media record saved to database: ${mediaRecord.id}`);
 
       // Clean up temporary file
       try {
@@ -137,14 +149,14 @@ export async function mediaRoutes(fastify: FastifyInstance) {
       return reply.status(200).send({
         message: 'Media uploaded successfully',
         data: {
-          id: mediaId,
-          url: uploadResult.url,
-          type: mediaType,
-          filename: file.originalFilename,
-          mimetype: file.mimetype,
-          size: file.size,
-          s3Key: uploadResult.key,
-          uploadedAt: new Date().toISOString()
+          id: mediaRecord.id,
+          url: mediaRecord.url,
+          type: mediaRecord.type,
+          filename: mediaRecord.filename,
+          mimetype: mediaRecord.mimetype,
+          size: mediaRecord.size,
+          s3Key: mediaRecord.s3Key,
+          uploadedAt: mediaRecord.createdAt.toISOString()
         }
       });
 
@@ -209,38 +221,43 @@ export async function mediaRoutes(fastify: FastifyInstance) {
       // Process each media ID
       for (const mediaId of mediaIds) {
         try {
-          // Find the media record in database (you'll need to implement this based on your media storage)
-          // For now, I'll assume the media ID contains the S3 key or we can derive it
+          // Find the media record in database
+          const mediaRecord = await Media.findByPk(mediaId);
           
-          // Extract S3 key from media ID - this depends on how you store media records
-          // You might need to query a media table to get the S3 key
-          // For this example, I'll assume the media ID is structured to contain the S3 path
-          
-          const s3Key = `drill-holes/${mediaId}`;
-          
-          Logger.info(`Attempting to delete S3 object: ${s3Key}`);
-          
-          // Delete from S3
-          const deleteSuccess = await s3Service.deleteFile(s3Key);
-          
-          if (deleteSuccess) {
+          if (!mediaRecord) {
             deletionResults.push({
               id: mediaId,
-              success: true,
-              message: 'Deleted successfully'
+              success: false,
+              message: 'Media record not found in database'
             });
-            Logger.info(`Successfully deleted media: ${mediaId}`);
-          } else {
+            errors.push(`Media ${mediaId} not found in database`);
+            continue;
+          }
+          
+          Logger.info(`Attempting to delete S3 object: ${mediaRecord.s3Key}`);
+          
+          // Delete from S3
+          const deleteSuccess = await s3Service.deleteFile(mediaRecord.s3Key);
+          
+          if (!deleteSuccess) {
             deletionResults.push({
               id: mediaId,
               success: false,
               message: 'Failed to delete from S3'
             });
             errors.push(`Failed to delete ${mediaId} from S3`);
+            continue;
           }
           
-          // TODO: Also delete from media database table if you have one
-          // await Media.destroy({ where: { id: mediaId } });
+          // Delete from database
+          await mediaRecord.destroy();
+          
+          deletionResults.push({
+            id: mediaId,
+            success: true,
+            message: 'Deleted successfully from S3 and database'
+          });
+          Logger.info(`Successfully deleted media: ${mediaId}`);
           
         } catch (error) {
           Logger.error(`Error deleting media ${mediaId}:`, error);

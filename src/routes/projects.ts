@@ -12,7 +12,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
   const projectDao = new ProjectDao();
   const userDao = new UserDao();
 
-  // GET /projects - List all projects
+  // GET /projects - List all projects filtered by user's organisation
   fastify.get<{
     Querystring: {
       page?: number;
@@ -30,12 +30,25 @@ export async function projectRoutes(fastify: FastifyInstance) {
   }>, reply: FastifyReply) => {
     try {
       const { page = 1, limit = 10, search } = request.query;
+      const user = request.userProfile;
+
+      Logger.info(`Getting projects for user:`, { userId: user?.id, organisationId: user?.organisationId });
+
+      // Check if user has an organisation
+      if (!user || !user.organisationId) {
+        return reply.code(403).send({
+          error: 'User organisation not found'
+        });
+      }
       
       const { projects, total } = await projectDao.getProjects({
         page: Number(page),
         limit: Number(limit),
-        search
+        search,
+        organisationId: user.organisationId
       });
+
+      Logger.info(`Found ${total} projects for organisation ${user.organisationId}`);
 
       reply.send({ 
         projects,
@@ -463,34 +476,6 @@ export async function projectRoutes(fastify: FastifyInstance) {
       Logger.error('Get user projects error:', error);
       return reply.code(500).send({
         error: 'Failed to retrieve user projects'
-      });
-    }
-  });
-
-  /**
-   * GET /projects/organisation/:organisationId - Get projects by organisation
-   * Auth required: Yes
-   */
-  fastify.get<{
-    Params: {
-      organisationId: string;
-    };
-  }>('/organisation/:organisationId', {
-    preHandler: [authenticate]
-  }, async (request, reply) => {
-    try {
-      const { organisationId } = request.params;
-
-      const projects = await projectDao.getProjectsByOrganisationId(organisationId);
-
-      return reply.send({
-        projects
-      });
-
-    } catch (error: any) {
-      fastify.log.error('Get organisation projects error:', error);
-      return reply.code(500).send({
-        error: 'Failed to retrieve organisation projects'
       });
     }
   });

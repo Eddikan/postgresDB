@@ -56,6 +56,7 @@ export interface UserProfile {
   email: string;
   accountStatus: AccountStatus;
   twoFactorEnabled: boolean;
+  organisationId?: string;
   lastLogin?: Date;
   createdAt: Date;
   updatedAt: Date;

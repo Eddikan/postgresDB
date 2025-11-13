@@ -10,6 +10,8 @@ import crypto from 'crypto';
 import { Op, Sequelize } from 'sequelize';
 import Drilling from '../models/drilling.model';
 import Project from '../models/project.model';
+import Media from '../models/media.model';
+
 /**
  * Helper function to safely parse photos JSON
  */
@@ -40,6 +42,44 @@ function safeParsePhotos(photosJson: string | null | undefined): string[] {
       return [photosJson];
     }
     
+    return [];
+  }
+}
+
+/**
+ * Helper function to fetch media objects from media IDs
+ */
+async function fetchMediaObjects(photoIds: string[]): Promise<any[]> {
+  if (!photoIds || photoIds.length === 0) return [];
+  
+  try {
+    const mediaRecords = await Media.findAll({
+      where: {
+        id: {
+          [Op.in]: photoIds
+        }
+      },
+      attributes: ['id', 'url', 'type', 'filename', 'mimetype', 'size', 's3Key', 'createdAt'],
+      order: [['createdAt', 'ASC']]
+    });
+
+    return mediaRecords.map(media => {
+      const mediaData = media.toJSON ? media.toJSON() : media;
+      return {
+        id: mediaData.id,
+        url: mediaData.url,
+        type: mediaData.type,
+        filename: mediaData.filename,
+        mimetype: mediaData.mimetype,
+        size: mediaData.size,
+        s3Key: mediaData.s3Key,
+        uploadedAt: mediaData.createdAt instanceof Date 
+          ? mediaData.createdAt.toISOString() 
+          : new Date(mediaData.createdAt).toISOString()
+      };
+    });
+  } catch (error) {
+    Logger.error('Error fetching media objects:', error);
     return [];
   }
 }
@@ -285,6 +325,16 @@ export async function drillHoleRoutes(fastify: FastifyInstance) {
       const { page = 1, limit = 10, projectId, search } = request.query as any;
       const offset = (page - 1) * limit;
 
+      // Get user's organisation ID from authenticated request
+      const user = request.userProfile;
+      Logger.info(`Fetching drill holes for user:`, { userId: user?.id, organisationId: user?.organisationId });
+      
+      if (!user || !user.organisationId) {
+        return reply.status(403).send({
+          error: 'User organisation not found'
+        });
+      }
+
       // Build WHERE conditions for Sequelize
       const whereConditions: any = {};
       
@@ -300,13 +350,17 @@ export async function drillHoleRoutes(fastify: FastifyInstance) {
         ];
       }
 
-      // Get drill holes with project info using Sequelize
+      // Get drill holes with project info using Sequelize, filtered by organisation
       const { rows: drillHoles, count: total } = await Drilling.findAndCountAll({
         where: whereConditions,
         include: [{
           model: Project,
           as: 'project',
-          attributes: ['projectName', 'projectCode']
+          attributes: ['projectName', 'projectCode', 'organisationId'],
+          where: {
+            organisationId: user.organisationId
+          },
+          required: true
         }],
         order: [['createdAt', 'DESC']],
         limit: parseInt(limit.toString()),
@@ -314,16 +368,19 @@ export async function drillHoleRoutes(fastify: FastifyInstance) {
       });
 
       // Transform the data to match expected format
-      const transformedData = drillHoles.map(hole => {
+      const transformedData = await Promise.all(drillHoles.map(async (hole) => {
         const holeData = hole.toJSON();
-        holeData.photos = safeParsePhotos(holeData.photos);
+        const photoIds = safeParsePhotos(holeData.photos);
+        Logger.info(`Drill hole ${holeData.holeId} - Photo IDs:`, photoIds);
+        holeData.photos = await fetchMediaObjects(photoIds);
+        Logger.info(`Drill hole ${holeData.holeId} - Fetched media objects:`, holeData.photos.length);
         // Add project info at root level for backward compatibility
         if (holeData.project) {
           holeData.projectName = holeData.project.projectName;
           holeData.projectCode = holeData.project.projectCode;
         }
         return holeData;
-      });
+      }));
 
       return reply.status(200).send({
         message: 'Drill holes retrieved successfully',
@@ -376,16 +433,17 @@ export async function drillHoleRoutes(fastify: FastifyInstance) {
       });
 
       // Transform the data
-      const transformedData = drillHoles.map(hole => {
+      const transformedData = await Promise.all(drillHoles.map(async (hole) => {
         const holeData = hole.toJSON();
-        holeData.photos = safeParsePhotos(holeData.photos);
+        const photoIds = safeParsePhotos(holeData.photos);
+        holeData.photos = await fetchMediaObjects(photoIds);
         // Add project info at root level for backward compatibility
         if (holeData.project) {
           holeData.projectName = holeData.project.projectName;
           holeData.projectCode = holeData.project.projectCode;
         }
         return holeData;
-      });
+      }));
 
       return reply.status(200).send({
         message: 'Drill holes retrieved successfully',
@@ -435,7 +493,8 @@ export async function drillHoleRoutes(fastify: FastifyInstance) {
 
       // Transform the data
       const holeData = drillHole.toJSON();
-      holeData.photos = safeParsePhotos(holeData.photos);
+      const photoIds = safeParsePhotos(holeData.photos);
+      holeData.photos = await fetchMediaObjects(photoIds);
       // Add project info at root level for backward compatibility
       if (holeData.project) {
         holeData.projectName = holeData.project.projectName;
@@ -585,7 +644,8 @@ export async function drillHoleRoutes(fastify: FastifyInstance) {
 
       // Get updated drill hole data
       const updatedData = existingDrillHole.toJSON();
-      updatedData.photos = safeParsePhotos(updatedData.photos);
+      const photoIds = safeParsePhotos(updatedData.photos);
+      updatedData.photos = await fetchMediaObjects(photoIds);
 
       return reply.status(200).send({
         message: 'Drill hole updated successfully',

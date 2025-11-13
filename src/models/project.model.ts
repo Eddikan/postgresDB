@@ -8,9 +8,14 @@ import {
   AllowNull, 
   CreatedAt, 
   UpdatedAt,
-  HasMany
+  HasMany,
+  ForeignKey,
+  BelongsTo,
+  Index
 } from 'sequelize-typescript';
 import Drilling from './drilling.model';
+import Organisation from './organisation.model';
+import User from './user.model';
 
 @Table({
   tableName: 'projects',
@@ -36,6 +41,18 @@ export default class Project extends Model {
   @Column(DataType.STRING(255))
   declare state?: string;
 
+  @ForeignKey(() => Organisation)
+  @AllowNull(false)
+  @Index
+  @Column(DataType.UUID)
+  declare organisationId: string;
+
+  @ForeignKey(() => User)
+  @AllowNull(false)
+  @Index
+  @Column(DataType.UUID)
+  declare createdBy: string;
+
   @Column(DataType.DATEONLY)
   declare startDate?: Date;
 
@@ -54,6 +71,12 @@ export default class Project extends Model {
   declare updatedAt: Date;
 
   // Associations
+  @BelongsTo(() => Organisation)
+  declare organisation: Organisation;
+
+  @BelongsTo(() => User, 'createdBy')
+  declare creator: User;
+
   @HasMany(() => Drilling)
   declare drillings: Drilling[];
 }

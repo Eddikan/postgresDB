@@ -11,7 +11,7 @@ export class S3Service {
   constructor() {
     this.bucketName = process.env.AWS_S3_BUCKET_NAME || 'drilling-management-photos';
     this.s3Client = new S3Client({
-      region: process.env.AWS_REGION || 'us-east-1',
+      region: process.env.APP_AWS_REGION || 'us-east-1',
       credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
@@ -53,7 +53,7 @@ export class S3Service {
 
       await this.s3Client.send(command);
 
-      const url = `https://${this.bucketName}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`;
+      const url = `https://${this.bucketName}.s3.${process.env.APP_AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`;
 
       Logger.info(`File uploaded to S3: ${key}`);
       return { key, url };

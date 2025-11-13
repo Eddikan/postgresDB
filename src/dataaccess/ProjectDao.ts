@@ -49,15 +49,21 @@ export class ProjectDao extends SequelizeBaseDao {
     page?: number;
     limit?: number;
     createdById?: string;
+    organisationId?: string;
     search?: string;
   } = {}): Promise<{ projects: Project[]; total: number }> {
-    const { page = 1, limit = 10, createdById, search } = options;
+    const { page = 1, limit = 10, createdById, organisationId, search } = options;
     const offset = (page - 1) * limit;
 
     // Build WHERE conditions
     const conditions: string[] = [];
     const params: any[] = [];
     let paramIndex = 1;
+
+    if (organisationId) {
+      conditions.push(`"organisationId" = $${paramIndex++}`);
+      params.push(organisationId);
+    }
 
     if (createdById) {
       conditions.push(`"createdBy" = $${paramIndex++}`);
