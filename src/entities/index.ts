@@ -29,7 +29,9 @@ export {
 export { 
   Drilling, 
   CreateDrillingData, 
-  UpdateDrillingData 
+  UpdateDrillingData,
+  DowntimeCategory,
+  ShiftType
 } from './Drilling';
 
 // Organisation exports

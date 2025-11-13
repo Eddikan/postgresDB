@@ -24,10 +24,27 @@ export class Logger {
             const { timestamp, level, message, stack, ...meta } = info;
             let output = `${timestamp} [${level}]: ${message}`;
             
-            // Add metadata if present
+            // Add metadata if present, with circular reference protection
             const metaKeys = Object.keys(meta);
             if (metaKeys.length > 0) {
-              output += '\n' + JSON.stringify(meta, null, 2);
+              try {
+                output += '\n' + JSON.stringify(meta, (key, value) => {
+                  // Handle circular references
+                  if (typeof value === 'object' && value !== null) {
+                    if (value.constructor && (
+                      value.constructor.name === 'Socket' ||
+                      value.constructor.name === 'HTTPParser' ||
+                      value.constructor.name === 'ClientRequest' ||
+                      value.constructor.name === 'IncomingMessage'
+                    )) {
+                      return '[Circular Object]';
+                    }
+                  }
+                  return value;
+                }, 2);
+              } catch (error) {
+                output += '\n[Could not stringify metadata - circular reference detected]';
+              }
             }
             
             if (stack) {

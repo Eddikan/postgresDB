@@ -4,13 +4,12 @@ import fastifyCors from '@fastify/cors';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyJwt from '@fastify/jwt';
-import { authRoutes, userRoutes, projectRoutes, drillingRoutes, profileRoutes, roleRoutes, invitationRoutes, testEmailRoute, miningSamplesRoutes, twoFactorRoutes, organisationRoutes, fieldRoleRoutes, publicRoutes } from './routes';
+import { authRoutes, userRoutes, projectRoutes, drillingRoutes, drillHoleRoutes, mediaRoutes, profileRoutes, roleRoutes, invitationRoutes, testEmailRoute, miningSamplesRoutes, twoFactorRoutes, organisationRoutes, fieldRoleRoutes, publicRoutes } from './routes';
 import pool, { connectDatabase } from './config/database';
 import { initializeSequelize, sequelize } from './config/sequelize';
 import * as dotenv from 'dotenv';
 import { Sequelize } from 'sequelize-typescript';
 import pg from 'pg';
-import fastifyMultipart from '@fastify/multipart';
 import { registerAuthCheckHook } from './hooks/authCheck';
 import { Logger } from './utils/Logger';
 
@@ -33,6 +32,10 @@ export async function buildApp(): Promise<FastifyInstance> {
     logger: true,
     // For Lambda, we need to handle binary data properly
     requestIdLogLabel: 'reqId',
+    // Reasonable timeouts for file uploads
+    connectionTimeout: 120000, // 2 minutes for connection
+    requestTimeout: 120000,    // 2 minutes for request processing
+    bodyLimit: 50 * 1024 * 1024, // 50MB body limit
   });
 
   // Initialize both raw database pool and Sequelize
@@ -78,8 +81,12 @@ export async function buildApp(): Promise<FastifyInstance> {
   await server.register(fastifyJwt, {
     secret: process.env.JWT_SECRET || 'supersecret',
   });
-  
-  await server.register(fastifyMultipart);
+
+  // Override multipart/form-data parser for Formidable
+  server.removeContentTypeParser('multipart/form-data');
+  server.addContentTypeParser('multipart/form-data', function (request, payload, done) {
+    done(null, payload);
+  });
 
   // Register auth check hook for 2FA enforcement
   await registerAuthCheckHook(server, {
@@ -96,6 +103,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   await server.register(userRoutes, { prefix: '/users' });
   await server.register(projectRoutes, { prefix: '/projects' });
   await server.register(drillingRoutes, { prefix: '/drillings' });
+  await server.register(drillHoleRoutes, { prefix: '/api/drillholes' });
+  await server.register(mediaRoutes, { prefix: '/media' });
   await server.register(miningSamplesRoutes, { prefix: '/' });
   await server.register(twoFactorRoutes, { prefix: '/2fa' });
   await server.register(organisationRoutes, { prefix: '/organisation' });

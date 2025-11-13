@@ -5,7 +5,7 @@ import { authenticate, requirePermission, Permission } from '../middleware';
 import { ProjectDao } from '../dataaccess/ProjectDao';
 import { UserDao } from '../dataaccess';
 import { DatabaseConnection } from '../datasource';
-
+import { Logger } from '../utils/Logger';
 export async function projectRoutes(fastify: FastifyInstance) {
   // Initialize DAOs
   const database = new DatabaseConnection();
@@ -460,7 +460,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
       });
 
     } catch (error: any) {
-      fastify.log.error('Get user projects error:', error);
+      Logger.error('Get user projects error:', error);
       return reply.code(500).send({
         error: 'Failed to retrieve user projects'
       });
