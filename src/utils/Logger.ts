@@ -1,4 +1,5 @@
 import winston from 'winston';
+import fs from 'fs';
 
 /**
  * Reusable Logger utility class using Winston
@@ -12,78 +13,49 @@ export class Logger {
    */
   private static getInstance(): winston.Logger {
     if (!Logger.instance) {
+      const transports: winston.transport[] = [
+        // Always log to console (CloudWatch in Lambda)
+        new winston.transports.Console({
+          format: winston.format.combine(
+            winston.format.colorize(),
+            winston.format.printf(({ timestamp, level, message, ...meta }) => {
+              const metaStr = Object.keys(meta).length ? '\n' + JSON.stringify(meta, null, 2) : '';
+              return `${timestamp} [${level}]: ${message}${metaStr}`;
+            })
+          ),
+        }),
+      ];
+
+      // Only add file transports if not in Lambda (when writable filesystem available)
+      const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+      if (!isLambda) {
+        const logDir = 'logs';
+        // Create logs directory if it doesn't exist
+        if (!fs.existsSync(logDir)) {
+          fs.mkdirSync(logDir, { recursive: true });
+        }
+        transports.push(
+          new winston.transports.File({ 
+            filename: `${logDir}/error.log`, 
+            level: 'error' 
+          }),
+          new winston.transports.File({ 
+            filename: `${logDir}/combined.log` 
+          })
+        );
+      }
+
       Logger.instance = winston.createLogger({
         level: process.env.LOG_LEVEL || 'info',
         format: winston.format.combine(
-          winston.format.timestamp({
-            format: 'YYYY-MM-DD HH:mm:ss'
-          }),
+          winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
           winston.format.errors({ stack: true }),
-          winston.format.colorize({ all: true }),
-          winston.format.printf((info) => {
-            const { timestamp, level, message, stack, ...meta } = info;
-            let output = `${timestamp} [${level}]: ${message}`;
-            
-            // Add metadata if present, with circular reference protection
-            const metaKeys = Object.keys(meta);
-            if (metaKeys.length > 0) {
-              try {
-                output += '\n' + JSON.stringify(meta, (key, value) => {
-                  // Handle circular references
-                  if (typeof value === 'object' && value !== null) {
-                    if (value.constructor && (
-                      value.constructor.name === 'Socket' ||
-                      value.constructor.name === 'HTTPParser' ||
-                      value.constructor.name === 'ClientRequest' ||
-                      value.constructor.name === 'IncomingMessage'
-                    )) {
-                      return '[Circular Object]';
-                    }
-                  }
-                  return value;
-                }, 2);
-              } catch (error) {
-                output += '\n[Could not stringify metadata - circular reference detected]';
-              }
-            }
-            
-            if (stack) {
-              output += '\n' + stack;
-            }
-            
-            return output;
-          })
+          winston.format.splat(),
+          winston.format.json()
         ),
-        transports: [
-          new winston.transports.Console({
-            handleExceptions: true,
-            handleRejections: true
-          })
-        ],
-        exitOnError: false
+        defaultMeta: { service: 'primefrontier-backend' },
+        transports,
       });
-
-      // Add file logging in production
-      if (process.env.NODE_ENV === 'production') {
-        Logger.instance.add(new winston.transports.File({
-          filename: 'logs/error.log',
-          level: 'error',
-          format: winston.format.combine(
-            winston.format.timestamp(),
-            winston.format.errors({ stack: true }),
-            winston.format.json()
-          )
-        }));
-
-        Logger.instance.add(new winston.transports.File({
-          filename: 'logs/combined.log',
-          format: winston.format.combine(
-            winston.format.timestamp(),
-            winston.format.errors({ stack: true }),
-            winston.format.json()
-          )
-        }));
-      }
     }
     return Logger.instance;
   }

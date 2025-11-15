@@ -53,7 +53,7 @@
  * - File uploads should use S3 instead of local filesystem.
  */
 
-import { Handler, Context, APIGatewayProxyEvent } from 'aws-lambda';
+import { Handler } from 'aws-lambda';
 import awsLambdaFastify from '@fastify/aws-lambda';
 import { buildApp } from './src/app';
 
@@ -90,13 +90,13 @@ async function getHandler(): Promise<Handler> {
  * Lambda handler function
  * This is the entry point for all AWS Lambda invocations
  */
-export const handler = async (event: APIGatewayProxyEvent, context: Context) => {
-  // Get the cached or new handler
-  const proxyHandler = await getHandler();
-  
+export const handler: Handler = async (event, context) => {
   // Prevent Lambda from waiting for empty event loop
   context.callbackWaitsForEmptyEventLoop = false;
   
+  // Get the cached or new handler
+  const proxyHandler = await getHandler();
+  
   // Execute the request and return the result
-  return await proxyHandler(event, context);
+  return proxyHandler(event, context, () => {});
 };

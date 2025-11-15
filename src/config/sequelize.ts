@@ -15,11 +15,7 @@ export const sequelize = new Sequelize({
   password: process.env.DB_PASSWORD!,
   logging: process.env.NODE_ENV === 'development' ? console.log : false,
   dialectOptions: {
-    ssl:
-      process.env.NODE_ENV === 'production' ||
-      process.env.DB_HOST?.includes('render.com')
-        ? { rejectUnauthorized: false }
-        : false,
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
   },
   models: [path.join(__dirname, '../models/**/*.model.{ts,js}')],
   modelMatch: (filename, member) =>

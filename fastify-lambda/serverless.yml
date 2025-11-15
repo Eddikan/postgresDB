@@ -3,7 +3,7 @@ org: imeorg
 # "app" enables Serverless Framework Dashboard features and sharing them with other Services.
 app: imeserverless
 # "service" is the name of this project. This will also be added to your AWS resource names.
-service: primefrontier-api
+service: ime-fastify-backend
 
 # Service path - run from parent directory
 # This allows proper relative imports in handler
@@ -11,55 +11,63 @@ useDotenv: true
 
 provider:
   name: aws
-  runtime: nodejs20.x
+  runtime: nodejs22.x
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-east-1'}
   
-  # Environment variables - Loaded from .env file
-  # Make sure .env file exists in fastify-lambda folder before deployment
+  # VPC Configuration - Add your VPC details from old Lambda
+  # vpc:
+  #   securityGroupIds:
+  #     - sg-xxxxxxxxx  # Copy from old Lambda
+  #   subnetIds:
+  #     - subnet-xxxxxxxx  # Copy from old Lambda
+  #     - subnet-xxxxxxxx  # Copy from old Lambda
+  
+  # Environment variables - loaded from .env file (secure, not committed to git)
   environment:
     NODE_ENV: ${env:NODE_ENV, 'production'}
+    PORT: ${env:PORT, '3000'}
     DATABASE_URL: ${env:DATABASE_URL}
     DB_HOST: ${env:DB_HOST}
     DB_NAME: ${env:DB_NAME}
     DB_USERNAME: ${env:DB_USERNAME}
     DB_PASSWORD: ${env:DB_PASSWORD}
     DB_PORT: ${env:DB_PORT, '5432'}
-    PORT: ${env:PORT, '3000'}
     JWT_SECRET: ${env:JWT_SECRET}
     JWT_EXPIRES_IN: ${env:JWT_EXPIRES_IN, '7d'}
-    DEFAULT_ADMIN_EMAIL: ${env:DEFAULT_ADMIN_EMAIL}
-    DEFAULT_ADMIN_PASSWORD: ${env:DEFAULT_ADMIN_PASSWORD}
     FRONTEND_URL: ${env:FRONTEND_URL}
-    GOOGLE_CLIENT_ID: ${env:GOOGLE_CLIENT_ID, ''}
-    GOOGLE_CLIENT_SECRET: ${env:GOOGLE_CLIENT_SECRET, ''}
-    GOOGLE_CALLBACK_URL: ${env:GOOGLE_CALLBACK_URL, ''}
-    SMTP_HOST: ${env:SMTP_HOST, ''}
-    SMTP_PORT: ${env:SMTP_PORT, '587'}
-    SMTP_USER: ${env:SMTP_USER, ''}
-    SMTP_PASS: ${env:SMTP_PASS, ''}
-    FROM_EMAIL: ${env:FROM_EMAIL, ''}
-    MAILTRAP_TOKEN: ${env:MAILTRAP_TOKEN, ''}
-    TWILIO_ACCOUNT_SID: ${env:TWILIO_ACCOUNT_SID, ''}
-    TWILIO_AUTH_TOKEN: ${env:TWILIO_AUTH_TOKEN, ''}
-    TWILIO_PHONE_NUMBER: ${env:TWILIO_PHONE_NUMBER, ''}
+    MAILTRAP_TOKEN: ${env:MAILTRAP_TOKEN}
+    TWILIO_ACCOUNT_SID: ${env:TWILIO_ACCOUNT_SID}
+    TWILIO_AUTH_TOKEN: ${env:TWILIO_AUTH_TOKEN}
+    TWILIO_PHONE_NUMBER: ${env:TWILIO_PHONE_NUMBER}
+    AWS_S3_BUCKET_NAME: ${env:AWS_S3_BUCKET_NAME}
   
   # IAM permissions (add as needed)
   iam:
     role:
-      statements:
+      statements: 
         - Effect: Allow
           Action:
             - logs:CreateLogGroup
             - logs:CreateLogStream
             - logs:PutLogEvents
           Resource: '*'
+        # S3 permissions for file uploads
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+            - s3:GetObject
+            - s3:DeleteObject
+            - s3:ListBucket
+          Resource:
+            - 'arn:aws:s3:::drilling-management-photos/*'
+            - 'arn:aws:s3:::drilling-management-photos'
   
   # API Gateway configuration
   httpApi:
     cors:
       allowedOrigins:
-        - ${env:FRONTEND_URL}
+        - 'https://www.ime.com.ng'
         - 'http://localhost:3000'
         - 'http://localhost:5173'
       allowedHeaders:

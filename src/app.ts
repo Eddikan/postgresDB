@@ -118,6 +118,12 @@ export async function buildApp(): Promise<FastifyInstance> {
     timestamp: new Date().toISOString() 
   }));
 
+    // Test endpoint
+    server.get('/test', async () => ({
+      status: 'test endpoint working!',
+      timestamp: new Date().toISOString()
+    }));
+
   return server;
 }
 

@@ -10,13 +10,22 @@ export class S3Service {
 
   constructor() {
     this.bucketName = process.env.AWS_S3_BUCKET_NAME || 'drilling-management-photos';
-    this.s3Client = new S3Client({
-      region: process.env.APP_AWS_REGION || 'us-east-1',
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
-      }
-    });
+    
+    // In Lambda, AWS SDK automatically uses IAM role credentials
+    // For local development, use explicit credentials from .env
+    const s3Config: any = {
+      region: process.env.AWS_REGION || process.env.APP_AWS_REGION || 'us-east-1'
+    };
+    
+    // Only set explicit credentials if not running in Lambda (local development)
+    if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+      s3Config.credentials = {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+      };
+    }
+    
+    this.s3Client = new S3Client(s3Config);
   }
 
   /**
