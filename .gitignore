@@ -15,3 +15,20 @@ yarn-error.log*
 *.swo
 coverage/
 .nyc_output/
+
+# Compiled TypeScript files
+*.js
+*.js.map
+!*.config.js
+!migrations/**/*.js
+!seeders/**/*.js
+!scripts/**/*.js
+!test-login.js
+
+# Serverless
+.serverless/
+.serverless_plugins/
+
+# Build artifacts
+build/
+out/

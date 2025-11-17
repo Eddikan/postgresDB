@@ -1,0 +1,79 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: primefrontier-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-drillindb}
+      POSTGRES_USER: ${DB_USERNAME:-drillindb_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-your_secure_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - primefrontier-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-drillindb_user} -d ${DB_NAME:-drillindb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend Application
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: primefrontier-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-drillindb}
+      DB_USERNAME: ${DB_USERNAME:-drillindb_user}
+      DB_PASSWORD: ${DB_PASSWORD:-your_secure_password}
+      DATABASE_URL: postgresql://${DB_USERNAME:-drillindb_user}:${DB_PASSWORD:-your_secure_password}@postgres:5432/${DB_NAME:-drillindb}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_here}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3001}
+      
+      # Email Configuration
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_PORT: ${EMAIL_PORT}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD}
+      
+      # Twilio Configuration (for SMS 2FA)
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER}
+      
+      # Google OAuth (optional)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+    
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - primefrontier-network
+    volumes:
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  primefrontier-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

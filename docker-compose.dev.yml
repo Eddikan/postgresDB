@@ -1,0 +1,61 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: primefrontier-db-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-drillindb}
+      POSTGRES_USER: ${DB_USERNAME:-drillindb_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_dev_password_123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - primefrontier-dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-drillindb_user} -d ${DB_NAME:-drillindb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend Application (Development with hot reload)
+  backend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: primefrontier-backend-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-drillindb}
+      DB_USERNAME: ${DB_USERNAME:-drillindb_user}
+      DB_PASSWORD: ${DB_PASSWORD:-secure_dev_password_123}
+      DATABASE_URL: postgresql://${DB_USERNAME:-drillindb_user}:${DB_PASSWORD:-secure_dev_password_123}@postgres:5432/${DB_NAME:-drillindb}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_here}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3001}
+    
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - primefrontier-dev-network
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./uploads:/app/uploads
+    command: npm run dev
+
+networks:
+  primefrontier-dev-network:
+    driver: bridge
+
+volumes:
+  postgres_dev_data:
+    driver: local

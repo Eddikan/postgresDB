@@ -1,0 +1,26 @@
+# Development Dockerfile with hot reload
+FROM node:18-alpine
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Create app directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm install --legacy-peer-deps
+
+# Copy source code
+COPY . .
+
+# Create uploads directory
+RUN mkdir -p uploads
+
+# Expose port
+EXPOSE 3000
+
+# Start in development mode with hot reload
+CMD ["npm", "run", "dev"]

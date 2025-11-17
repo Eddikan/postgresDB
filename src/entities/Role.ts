@@ -2,10 +2,45 @@
 export enum RoleName {
   SUPER_ADMIN = 'super_admin',
   ADMIN = 'admin',
-  GEOLOGIST = 'geologist',
+  MANAGER = 'manager',
+  EDITOR = 'editor',
+  CONTRIBUTOR = 'contributor',
+  VIEWER = 'viewer'
+}
+
+// Field role enum for user specialization
+export enum FieldRole {
+SYSTEM_OWNER = 'System Owner',
+  CTO = 'CTO',
+  DIRECTOR_MINING_OPS = 'Director of Mining Ops',
+  PLATFORM_OWNER = 'Platform Owner',
+  INTERNAL_TECH_LEAD = 'Internal Tech Lead',
+  COO = 'COO',
+  OPERATIONS = 'Operations',
+  TECH_SERVICES_MANAGER = 'Tech Services Manager',
+  IT_LEAD = 'IT Lead',
+  TECHNICAL_SERVICES_MANAGER = 'Technical Services Manager',
+  IT_DATA_MANAGER = 'IT/Data Manager',
+  MINE_MANAGER = 'Mine Manager',
+  PROJECT_GEOLOGIST = 'Project Geologist',
+  HSE_MANAGER = 'HSE Manager',
+  ENVIRONMENTAL_SAFETY_MANAGER = 'Environmental & Safety Manager',
+  GEOLOGISTS = 'Geologists',
+  DATA_SCIENTISTS = 'Data Scientists',
+  ENGINEERS = 'Engineers',
+  EXPLORATION_GEOLOGIST = 'Exploration Geologist',
+  DRILL_GEOLOGIST = 'Drill Geologist',
+  DRILL_SUPERVISORS = 'Drill Supervisors',
+  FIELD_TECHNICIANS = 'Field Technicians',
+  FIELD_ASSISTANTS = 'Field Assistants',
+  CEO = 'CEO',
+  BD_TEAMS = 'BD Teams',
+  COMMUNITY_RELATIONS_MANAGER = 'Community Relations Manager',
+  EXECUTIVES = 'Executives',
+  INVESTORS = 'Investors',
   DRILLER = 'driller',
-  JUNIOR_DRILLER = 'junior_driller',
-  USER = 'user'
+  GEOLOGIST = 'geologist',
+  MINER = 'miner'
 }
 
 // Permission enum

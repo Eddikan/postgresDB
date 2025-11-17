@@ -56,6 +56,7 @@ export interface UserProfile {
   email: string;
   accountStatus: AccountStatus;
   twoFactorEnabled: boolean;
+  organisationId?: string;
   lastLogin?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -98,7 +99,21 @@ export const authenticate = async (request: FastifyRequest, reply: FastifyReply)
     })(request, reply);
   });
 };
-
+export const requireJWT = async (request: FastifyRequest, reply: FastifyReply) => {
+  return new Promise((resolve, reject) => {
+    passport.authenticate('jwt', { session: false }, (err: any, user: UserProfile) => {
+      if (err) {
+        return reject(err);
+      }
+      
+      if (!user) {
+        return reply.code(401).send({ error: 'Unauthorized Access' });
+      }
+      request.userProfile = user;
+      resolve(user);
+    })(request, reply);
+  });
+};
 /**
  * Middleware to require specific permissions
  */

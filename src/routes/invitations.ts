@@ -1,11 +1,13 @@
 import { FastifyInstance } from 'fastify';
 import bcrypt from 'bcrypt';
 import { UserDao } from '../dataaccess';
+import { OrganisationDao } from '../dataaccess/OrganisationDao';
 import { DatabaseConnection } from '../datasource';
 import { EmailService } from '../services';
 import { authenticate, requirePermission, Permission } from '../middleware';
-import { CreateUserData, AccountStatus } from '../entities';
+import { CreateUserData, AccountStatus, FieldRole } from '../entities';
 import { config } from '../config/config';
+import {Logger} from '../utils/Logger';
 
 /**
  * User invitation routes
@@ -13,7 +15,8 @@ import { config } from '../config/config';
 export async function invitationRoutes(fastify: FastifyInstance) {
   // Initialize DAOs
   const database = new DatabaseConnection();
-  const userDao = new UserDao(database);
+  const userDao = new UserDao();
+  const organisationDao = new OrganisationDao();
 
   /**
    * POST /api/invitations/invite
@@ -24,17 +27,25 @@ export async function invitationRoutes(fastify: FastifyInstance) {
       email: string;
       firstName: string;
       lastName: string;
-      roleId?: string;
+      roleId: string;
+      fieldRole: string;
     };
   }>('/invite', {
     preHandler: [authenticate, requirePermission(Permission.SYSTEM_MANAGE_USERS)]
   }, async (request, reply) => {
     try {
-      const { email, firstName, lastName, roleId } = request.body;
+      const { email, firstName, lastName, roleId, fieldRole } = request.body;
       // Validate required fields
-      if (!email || !firstName || !lastName) {
+      if (!email || !firstName || !lastName || !roleId || !fieldRole) {
         return reply.status(400).send({
-          error: 'Email, first name, and last name are required'
+          error: 'Email, first name, last name, role, and field role are required'
+        });
+      }
+
+      // Validate fieldRole enum
+      if (!Object.values(FieldRole).includes(fieldRole as FieldRole)) {
+        return reply.status(400).send({
+          error: 'Invalid field role. Must be one of: driller, geologist, miner'
         });
       }
 
@@ -46,12 +57,25 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         });
       }
 
+      // Get the inviting user's organisation name for the email
+      const invitingUser = request.userProfile!;
+      let organisationName = "your organisation";
+      
+      // Get the full user details to access organisationId
+      const fullUserDetails = await userDao.getUserById(invitingUser.id);
+      if (fullUserDetails?.organisationId) {
+        const organisation = await organisationDao.getOrganisationById(fullUserDetails.organisationId);
+        if (organisation) {
+          organisationName = organisation.name;
+        }
+      }
+
       // Generate secure password and invitation token
       const temporaryPassword = EmailService.generateSecurePassword();
       const invitationToken = EmailService.generateInvitationToken();
       const passwordHash = await bcrypt.hash(temporaryPassword, 12);
 
-      // Create user with inactive status
+      // Create user with inactive status - inherit organisation from inviting user
       const userData: CreateUserData = {
         email,
         firstName,
@@ -59,7 +83,11 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         password: passwordHash,
         accountStatus: AccountStatus.INACTIVE,
         roleId,
-        twoFactorEnabled: false
+        fieldRole: fieldRole as FieldRole,
+        twoFactorEnabled: false,
+        invitedBy: request.userProfile!.id,  // Current authenticated user
+        invitedAt: new Date(),               // Current timestamp
+        organisationId: fullUserDetails?.organisationId // Inherit organisation from inviting user
       };
       const newUser = await userDao.createUser(userData);
 
@@ -77,7 +105,8 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         lastName,
         temporaryPassword,
         invitationToken,
-        loginUrl
+        loginUrl,
+        organisationName
       );
 
       return reply.status(201).send({
@@ -93,7 +122,9 @@ export async function invitationRoutes(fastify: FastifyInstance) {
       });
 
     } catch (error: any) {
-      fastify.log.error('Error sending user invitation:', error);
+      console.log('error sendingss user invitation:',error)
+
+      Logger.error('Error sendingsss user invitation:');
       return reply.status(500).send({
         error: 'Failed to send user invitation'
       });
@@ -215,6 +246,17 @@ export async function invitationRoutes(fastify: FastifyInstance) {
 
       const loginUrl = `${origin}/${config.FRONTEND_LOGIN_URL}`;
 
+      // Get organisation name for resend email
+      let organisationName = "your organisation";
+      const resendingUser = request.userProfile!;
+      const fullResendingUserDetails = await userDao.getUserById(resendingUser.id);
+      if (fullResendingUserDetails?.organisationId) {
+        const organisation = await organisationDao.getOrganisationById(fullResendingUserDetails.organisationId);
+        if (organisation) {
+          organisationName = organisation.name;
+        }
+      }
+
       // Send new invitation email
       await EmailService.sendUserInvitationEmail(
         user.email,
@@ -222,7 +264,8 @@ export async function invitationRoutes(fastify: FastifyInstance) {
         user.lastName || '',
         temporaryPassword,
         invitationToken,
-        loginUrl
+        loginUrl,
+        organisationName
       );
 
       return reply.status(200).send({

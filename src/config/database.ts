@@ -9,9 +9,8 @@ const { Pool } = pg;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 
     `postgresql://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
-  ssl: process.env.NODE_ENV === 'production' || process.env.DB_HOST?.includes('render.com') 
-    ? { rejectUnauthorized: false } 
-    : false,
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+
   max: 20, // maximum number of clients in the pool
   idleTimeoutMillis: 30000, // close idle clients after 30 seconds
   connectionTimeoutMillis: 10000, // return an error after 10 seconds if connection could not be established

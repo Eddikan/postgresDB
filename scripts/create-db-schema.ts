@@ -128,6 +128,10 @@ async function createAuthTables() {
         "lastLogin" TIMESTAMP,
         "twoFactorEnabled" BOOLEAN DEFAULT FALSE,
         "twoFactorSecret" VARCHAR(255),
+        "twoFactorType" VARCHAR(20) CHECK ("twoFactorType" IN ('email', 'sms', 'totp')),
+        "twoFactorTarget" VARCHAR(255),
+        "twoFactorCode" VARCHAR(255),
+        "twoFactorCodeExpires" TIMESTAMP,
         "invitationToken" VARCHAR(255),
         "invitationExpires" TIMESTAMP,
         "invitedBy" UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -135,7 +139,8 @@ async function createAuthTables() {
         "activatedAt" TIMESTAMP,
         "createdAt" TIMESTAMP DEFAULT NOW(),
         "updatedAt" TIMESTAMP DEFAULT NOW(),
-        "has_changed_default_password" BOOLEAN DEFAULT FALSE
+        "has_changed_default_password" BOOLEAN DEFAULT FALSE,
+        "passwordChangedAt" TIMESTAMP
       )
     `);
     console.log('✅ Users table created');

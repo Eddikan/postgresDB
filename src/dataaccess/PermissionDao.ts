@@ -1,6 +1,5 @@
-import { BaseDao } from './BaseDao';
+import { SequelizeBaseDao } from './SequelizeBaseDao';
 import { Permission } from '../entities';
-import { DatabaseConnection } from '../datasource';
 
 export interface PermissionEntity {
   id: string;
@@ -24,9 +23,9 @@ export interface UpdatePermissionData {
  * Permission Data Access Object with SQL injection protection
  * All queries use parameterized statements to prevent SQL injection
  */
-export class PermissionDao extends BaseDao {
-  constructor(database: DatabaseConnection) {
-    super(database);
+export class PermissionDao extends SequelizeBaseDao {
+  constructor() {
+    super();
   }
 
   /**

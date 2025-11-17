@@ -26,6 +26,28 @@ scripts/
 ```
 
 ## Setup
+
+### Quick Start (New Developers)
+```bash
+# 1. Clone the repository
+git clone <repository-url>
+cd primefrontier
+
+# 2. Install dependencies
+npm install
+
+# 3. Configure environment variables
+cp .env.example .env
+# Edit .env with your database credentials and secrets
+
+# 4. Set up database (runs migrations + seeds data)
+npm run db:setup
+
+# 5. Start development server
+npm run dev
+```
+
+### Manual Setup
 1. **Clone the repository**
 2. **Install dependencies**
    ```bash
@@ -36,14 +58,60 @@ scripts/
    ```bash
    cp .env.example .env
    ```
-4. **Create database schema and seed data**
+4. **Set up database**
    ```bash
-   npm run create-schema
+   npm run db:setup  # Runs migrations + seeds data
+   ```
+   Or individually:
+   ```bash
+   npm run migration:run  # Run database migrations
+   npm run db:seed:all    # Seed initial data
    ```
 5. **Start the development server**
    ```bash
    npm run dev
    ```
+
+## Docker Setup
+
+### Quick Start with Docker
+```bash
+# 1. Clone and configure
+git clone <repository-url>
+cd primefrontier
+cp .env.docker .env
+# Edit .env with your configuration
+
+# 2. Run with Docker (Production)
+npm run docker:prod
+
+# 3. Run with Docker (Development with hot reload)
+npm run docker:dev
+```
+
+### Docker Commands
+```bash
+# Development with hot reload
+npm run docker:dev          # Start dev environment
+npm run docker:stop-dev     # Stop dev environment
+
+# Production
+npm run docker:prod         # Start production environment
+npm run docker:stop         # Stop production environment
+
+# Maintenance
+npm run docker:clean        # Clean up containers and volumes
+npm run docker:build        # Build image only
+```
+
+### What Docker Provides
+- ✅ **PostgreSQL database** automatically configured
+- ✅ **Automatic database setup** (migrations + seeding)
+- ✅ **Hot reload in development** mode
+- ✅ **Production-ready** multi-stage build
+- ✅ **Health checks** for both services
+- ✅ **Volume persistence** for database data
+- ✅ **Network isolation** between services
 
 ## Authentication & Authorization
 - Email/password login, Google OAuth2, JWT sessions
@@ -56,9 +124,29 @@ scripts/
 - CORS, helmet, rate limiting enabled
 
 ## Scripts
-- `npm run dev` — Start server in development mode
-- `npm run build` — Compile TypeScript
-- `npm run create-schema` — Create database schema and seed admin user
+
+### Development
+- `npm run dev` — Start server in development mode with auto-reload
+- `npm run build` — Compile TypeScript to dist/
+- `npm run start` — Start compiled server (production)
+
+### Database
+- `npm run db:setup` — Complete database setup (migrations + seeding)
+- `npm run migration:run` — Run database migrations only
+- `npm run db:seed:all` — Seed initial data only
+- `npm run db:migrate:status` — Check migration status
+- `npm run migration:create <name>` — Create new migration file
+
+### Docker
+- `npm run docker:dev` — Start development environment with hot reload
+- `npm run docker:prod` — Start production environment  
+- `npm run docker:stop` — Stop production environment
+- `npm run docker:stop-dev` — Stop development environment
+- `npm run docker:clean` — Clean up containers and volumes
+- `npm run docker:build` — Build Docker image only
+
+### Legacy
+- `npm run seed` — Legacy: Create schema + seed data (uses TypeScript scripts)
 
 ## Comments
 - Twilio and nodemailer integration points are commented in the code for easy setup.

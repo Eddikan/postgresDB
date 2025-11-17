@@ -68,13 +68,14 @@ export abstract class BaseDao {
     setClause: string;
     params: any[];
   } {
-    const entries = Object.entries(updates).filter(([_, value]) => value !== undefined);
+    // Include all entries, converting undefined to null for SQL
+    const entries = Object.entries(updates);
     if (entries.length === 0) {
       return { setClause: '', params: [] };
     }
     // Wrap column names in double quotes for SQL
     const setParts = entries.map(([key], index) => `"${key}" = $${startParamIndex + index}`);
-    const params = entries.map(([_, value]) => value);
+    const params = entries.map(([_, value]) => value === undefined ? null : value);
     return {
       setClause: `SET ${setParts.join(', ')}`,
       params

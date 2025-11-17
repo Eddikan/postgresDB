@@ -4,6 +4,7 @@ import { UserDao } from '../dataaccess';
 import { databaseConnection } from '../datasource';
 import { authenticate } from '../middleware/auth-sql';
 import { requireActiveAccount } from '../middleware/account-status';
+import { AccountStatus } from '../entities/User';
 
 // Request body interfaces
 interface UpdateProfileBody {
@@ -18,7 +19,7 @@ interface ChangePasswordBody {
 
 export async function profileRoutes(fastify: FastifyInstance) {
   // Initialize UserDao
-  const userDao = new UserDao(databaseConnection);
+  const userDao = new UserDao();
 
   // Get logged-in user profile
   fastify.get('/profile', { preHandler: [authenticate, requireActiveAccount] }, async (request: any, reply) => {
@@ -148,9 +149,12 @@ export async function profileRoutes(fastify: FastifyInstance) {
       // Hash new password
       const newPasswordHash = await bcrypt.hash(newPassword, 12);
 
-      // Update password
+      // Update password and mark as changed
       await userDao.updateUser(userId, {
-        password: newPasswordHash
+        password: newPasswordHash,
+        has_changed_default_password: true,
+        passwordChangedAt: new Date(),
+        accountStatus: user.accountStatus === AccountStatus.INACTIVE ? AccountStatus.ACTIVE : user.accountStatus
       });
 
       reply.send({

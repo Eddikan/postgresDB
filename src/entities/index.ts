@@ -2,6 +2,8 @@
 export { 
   User, 
   AccountStatus, 
+  TwoFactorType,
+  FieldRole,
   CreateUserData, 
   UpdateUserData 
 } from './User';
@@ -18,6 +20,7 @@ export {
 // Project exports
 export { 
   Project, 
+  ProjectStatus,
   CreateProjectData, 
   UpdateProjectData 
 } from './Project';
@@ -26,5 +29,14 @@ export {
 export { 
   Drilling, 
   CreateDrillingData, 
-  UpdateDrillingData 
+  UpdateDrillingData,
+  DowntimeCategory,
+  ShiftType
 } from './Drilling';
+
+// Organisation exports
+export { 
+  Organisation, 
+  CreateOrganisationData, 
+  UpdateOrganisationData 
+} from './Organisation';
